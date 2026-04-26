@@ -1,0 +1,36 @@
+{
+  "name": "ekmek-db",
+  "version": "0.0.2",
+  "description": "A lightweight, robust, and type-safe database wrapper",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "database",
+    "json",
+    "yaml",
+    "mongodb",
+    "discord",
+    "bot",
+    "storage"
+  ],
+  "author": "null.rb",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "lodash": "^4.18.1",
+    "mongodb": "^7.2.0",
+    "yaml": "^2.8.3"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.17.24",
+    "@types/mongodb": "^4.0.6",
+    "@types/node": "^25.6.0",
+    "@types/yaml": "^1.9.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  }
+}
