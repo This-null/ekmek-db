@@ -24,7 +24,28 @@ A modern, robust, type-safe, and lightweight database wrapper for Node.js.
 ```bash
 npm install ekmek-db
 ```
+## MysqlAdapter
+- Perfect for web applications and production environments where you need a centralized SQL database.
+```typescript
+import { EkmekDB, MysqlAdapter } from 'ekmek-db';
 
+const db = new EkmekDB(new MysqlAdapter({
+  host: 'localhost',
+  user: 'root',
+  password: 'your_password',
+  database: 'your_database',
+  // Optional: all other mysql2 pool options are supported
+}, 'table_name')); // Optional: Default table name is 'ekmek_db'
+
+async function setup() {
+  await db.set('server.status', 'online');
+  
+  const status = await db.get('server.status');
+  console.log(`Server is ${status}`);
+}
+
+setup();
+```
 ## Adapters Setup
 - Initialize your database with the adapter that fits your project.
 

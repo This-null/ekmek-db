@@ -6,3 +6,4 @@ export { MongoAdapter } from './adapters/MongoAdapter';
 export { MemoryAdapter } from './adapters/MemoryAdapter';
 export { Migrator } from './utils/Migrator';
 export { Validator } from './utils/validation';
+export { MysqlAdapter } from './adapters/MysqlAdapter';

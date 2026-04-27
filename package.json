@@ -1,9 +1,17 @@
 {
   "name": "ekmek-db",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "description": "A lightweight, robust, and type-safe database wrapper",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/This-null/ekmek-db.git"
+  },
+  "bugs": {
+    "url": "https://github.com/This-null/ekmek-db/issues"
+  },
+  "homepage": "https://github.com/This-null/ekmek-db#readme",
   "scripts": {
     "build": "tsc",
     "prepare": "npm run build"
@@ -15,7 +23,17 @@
     "mongodb",
     "discord",
     "bot",
-    "storage"
+    "storage",
+    "typescript",
+    "nodejs",
+    "javascript",
+    "db",
+    "wrapper",
+    "lightweight",
+    "robust",
+    "type-safe",
+    "multi-database",
+    "mysql"
   ],
   "author": "null.rb",
   "license": "ISC",
@@ -23,6 +41,7 @@
   "dependencies": {
     "lodash": "^4.18.1",
     "mongodb": "^7.2.0",
+    "mysql2": "^3.22.3",
     "yaml": "^2.8.3"
   },
   "devDependencies": {
