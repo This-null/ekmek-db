@@ -1,5 +1,8 @@
 export { EkmekDB } from './core/EkmekDB';
+export type { EkmekDBEventMap } from './core/EkmekDB';
 export { BaseAdapter } from './adapters/BaseAdapter';
+export { FileAdapter } from './adapters/FileAdapter';
+export type { FileAdapterOptions } from './adapters/FileAdapter';
 export { JsonAdapter } from './adapters/JsonAdapter';
 export { YamlAdapter } from './adapters/YamlAdapter';
 export { MongoAdapter } from './adapters/MongoAdapter';
@@ -7,3 +10,5 @@ export { MemoryAdapter } from './adapters/MemoryAdapter';
 export { Migrator } from './utils/Migrator';
 export { Validator } from './utils/validation';
 export { MysqlAdapter } from './adapters/MysqlAdapter';
+export { Dashboard } from './dashboard/Dashboard';
+export type { DashboardOptions } from './dashboard/Dashboard';

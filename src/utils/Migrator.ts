@@ -10,8 +10,8 @@ export class Migrator {
   }
 
   static async transferFromQuickDB(quickDbInstance: any, target: BaseAdapter): Promise<void> {
-    const allData = quickDbInstance.all();
-    
+    const allData = await quickDbInstance.all();
+
     for (const item of allData) {
       await target.set(item.ID, item.data);
     }

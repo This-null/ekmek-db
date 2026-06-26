@@ -61,8 +61,14 @@ export class MongoAdapter implements BaseAdapter {
   }
 
   async has(key: string): Promise<boolean> {
-    const val = await this.get(key);
-    return val !== null && val !== undefined;
+    const col = await this.connect();
+    const [baseKey, ...rest] = key.split('.');
+
+    const document = await col.findOne({ ID: baseKey });
+    if (!document) return false;
+
+    if (rest.length === 0) return true;
+    return _.has(document.data, rest.join('.'));
   }
 
   async delete(key: string): Promise<boolean> {
@@ -106,5 +112,11 @@ export class MongoAdapter implements BaseAdapter {
   async clear(): Promise<void> {
     const col = await this.connect();
     await col.deleteMany({});
+  }
+
+  async close(): Promise<void> {
+    await this.client.close();
+    this.db = null;
+    this.collection = null;
   }
 }

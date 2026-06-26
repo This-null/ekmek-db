@@ -1,9 +1,20 @@
 {
   "name": "ekmek-db",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A lightweight, robust, and type-safe database wrapper",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "ekmek-db": "dist/dashboard/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=16"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/This-null/ekmek-db.git"
@@ -13,8 +24,9 @@
   },
   "homepage": "https://github.com/This-null/ekmek-db#readme",
   "scripts": {
-    "build": "tsc",
-    "prepare": "npm run build"
+    "build": "tsc && node scripts/copy-public.mjs",
+    "prepare": "npm run build",
+    "dashboard": "node dist/dashboard/cli.js dashboard"
   },
   "keywords": [
     "database",

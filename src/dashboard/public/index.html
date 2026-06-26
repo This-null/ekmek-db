@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark light" />
+  <title>ekmek-db · dashboard</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: ['selector', '[data-theme="dark"]'],
+      theme: {
+        extend: {
+          colors: { onyx: '#020202', carbon: '#171717', candy: '#B2D5E5', lime: '#C6FF34' },
+          fontFamily: {
+            display: ['"Space Grotesk"', 'ui-sans-serif', 'sans-serif'],
+            sans: ['Inter', 'ui-sans-serif', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body class="font-sans antialiased">
+  <div class="backdrop" aria-hidden="true"></div>
+
+  <main id="auth-screen" class="auth hidden">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <span class="loaf">🍞</span>
+        <div>
+          <p class="brand-name" data-i18n="app.name">ekmek-db</p>
+          <p class="brand-tag" data-i18n="app.tagline">Live database control</p>
+        </div>
+      </div>
+
+      <form id="setup-form" class="auth-form hidden" autocomplete="off">
+        <h1 class="auth-title" data-i18n="setup.title">Welcome</h1>
+        <p class="auth-sub" data-i18n="setup.subtitle"></p>
+        <label class="field">
+          <span data-i18n="setup.username">Username</span>
+          <input name="username" type="text" required minlength="3" maxlength="32" />
+          <small class="hint" data-i18n="setup.usernameHint"></small>
+        </label>
+        <label class="field">
+          <span data-i18n="setup.password">Password</span>
+          <input name="password" type="password" required minlength="8" />
+          <small class="hint" data-i18n="setup.passwordHint"></small>
+        </label>
+        <label class="field">
+          <span data-i18n="setup.confirm">Confirm</span>
+          <input name="confirm" type="password" required minlength="8" />
+        </label>
+        <p class="form-error" data-error></p>
+        <button type="submit" class="btn btn-primary w-full" data-i18n="setup.submit">Create account</button>
+      </form>
+
+      <form id="login-form" class="auth-form hidden" autocomplete="off">
+        <h1 class="auth-title" data-i18n="login.title">Sign in</h1>
+        <p class="auth-sub" data-i18n="login.subtitle"></p>
+        <label class="field">
+          <span data-i18n="login.username">Username</span>
+          <input name="username" type="text" required autocomplete="username" />
+        </label>
+        <label class="field">
+          <span data-i18n="login.password">Password</span>
+          <input name="password" type="password" required autocomplete="current-password" />
+        </label>
+        <p class="form-error" data-error></p>
+        <button type="submit" class="btn btn-primary w-full" data-i18n="login.submit">Sign in</button>
+      </form>
+    </div>
+    <div class="auth-foot">
+      <button class="ghost-pill" data-toggle-theme aria-label="theme"></button>
+      <button class="ghost-pill" data-toggle-lang>EN · TR</button>
+    </div>
+  </main>
+
+  <div id="app" class="app hidden">
+    <aside class="sidebar">
+      <div class="side-brand">
+        <span class="loaf">🍞</span>
+        <div>
+          <p class="brand-name">ekmek-db</p>
+          <p class="brand-tag" data-i18n="app.tagline"></p>
+        </div>
+      </div>
+
+      <nav class="side-nav">
+        <p class="nav-label" data-i18n="nav.section_main"></p>
+        <a class="nav-item" data-route="overview" href="#overview">
+          <svg viewBox="0 0 24 24" class="ico"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="11" width="7" height="10" rx="2"/><rect x="3" y="15" width="7" height="6" rx="2"/></svg>
+          <span data-i18n="nav.overview">Overview</span>
+        </a>
+        <a class="nav-item" data-route="data" href="#data">
+          <svg viewBox="0 0 24 24" class="ico"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>
+          <span data-i18n="nav.data">Data</span>
+        </a>
+        <a class="nav-item" data-route="transfer" href="#transfer">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          <span data-i18n="nav.transfer">Transfer</span>
+        </a>
+        <p class="nav-label" data-i18n="nav.section_system"></p>
+        <a class="nav-item" data-route="settings" href="#settings">
+          <svg viewBox="0 0 24 24" class="ico"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 2h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 22h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2Z"/></svg>
+          <span data-i18n="nav.settings">Settings</span>
+        </a>
+      </nav>
+
+      <div class="side-foot">
+        <div class="who">
+          <span class="dot"></span>
+          <div>
+            <small data-i18n="common.signedInAs"></small>
+            <p data-user>—</p>
+          </div>
+        </div>
+        <button class="nav-item logout" data-logout>
+          <svg viewBox="0 0 24 24" class="ico"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+          <span data-i18n="nav.logout">Sign out</span>
+        </button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <button class="icon-btn lg:hidden" data-menu aria-label="menu">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div class="crumbs">
+          <span class="crumb-root">ekmek-db</span>
+          <span class="crumb-sep">/</span>
+          <span data-crumb>—</span>
+        </div>
+        <div class="topbar-actions">
+          <button class="icon-btn" data-toggle-lang title="EN · TR"><span class="lang-flag" data-lang-flag>EN</span></button>
+          <button class="icon-btn" data-toggle-theme aria-label="theme"></button>
+        </div>
+      </header>
+
+      <main id="view" class="view"></main>
+    </div>
+  </div>
+
+  <div id="modal-root"></div>
+  <div id="toast-root" class="toast-root"></div>
+
+  <script src="/js/i18n.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

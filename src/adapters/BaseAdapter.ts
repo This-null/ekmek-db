@@ -5,4 +5,5 @@ export interface BaseAdapter {
   delete(key: string): Promise<boolean>;
   all(): Promise<Record<string, any>>;
   clear(): Promise<void>;
+  close?(): Promise<void>;
 }

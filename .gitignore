@@ -2,3 +2,7 @@ node_modules/
 dist/
 .env
 *.log
+
+# Dashboard runtime files (contain hashed admin password + server secret)
+ekmek-dashboard.config.json
+data/

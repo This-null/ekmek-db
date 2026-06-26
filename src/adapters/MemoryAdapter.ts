@@ -25,7 +25,7 @@ export class MemoryAdapter implements BaseAdapter {
   }
 
   async all(): Promise<Record<string, any>> {
-    return this.data;
+    return _.cloneDeep(this.data);
   }
 
   async clear(): Promise<void> {

@@ -5,11 +5,17 @@ import _ from 'lodash';
 export class MysqlAdapter implements BaseAdapter {
   private pool: Pool;
   private tableName: string;
+  private ready: Promise<void>;
 
   constructor(config: mysql.PoolOptions, tableName: string = 'ekmek_db') {
+    if (!/^[A-Za-z0-9_]+$/.test(tableName)) {
+      throw new Error(
+        `[ekmek-db] Invalid table name "${tableName}". Only letters, numbers and underscores are allowed.`
+      );
+    }
     this.pool = mysql.createPool(config);
     this.tableName = tableName;
-    this.init();
+    this.ready = this.init();
   }
 
   private async init(): Promise<void> {
@@ -23,6 +29,7 @@ export class MysqlAdapter implements BaseAdapter {
   }
 
   async get<T>(key: string): Promise<T | null> {
+    await this.ready;
     const [baseKey, ...rest] = key.split('.');
     const [rows]: any = await this.pool.execute(
       `SELECT \`data\` FROM \`${this.tableName}\` WHERE \`ID\` = ?`,
@@ -37,6 +44,7 @@ export class MysqlAdapter implements BaseAdapter {
   }
 
   async set<T>(key: string, value: T): Promise<void> {
+    await this.ready;
     const [baseKey, ...rest] = key.split('.');
 
     if (rest.length === 0) {
@@ -59,11 +67,20 @@ export class MysqlAdapter implements BaseAdapter {
   }
 
   async has(key: string): Promise<boolean> {
-    const val = await this.get(key);
-    return val !== null;
+    await this.ready;
+    const [baseKey, ...rest] = key.split('.');
+    const [rows]: any = await this.pool.execute(
+      `SELECT \`data\` FROM \`${this.tableName}\` WHERE \`ID\` = ?`,
+      [baseKey]
+    );
+
+    if (rows.length === 0) return false;
+    if (rest.length === 0) return true;
+    return _.has(rows[0].data, rest.join('.'));
   }
 
   async delete(key: string): Promise<boolean> {
+    await this.ready;
     const [baseKey, ...rest] = key.split('.');
 
     if (rest.length === 0) {
@@ -86,6 +103,7 @@ export class MysqlAdapter implements BaseAdapter {
   }
 
   async all(): Promise<Record<string, any>> {
+    await this.ready;
     const [rows]: any = await this.pool.execute(`SELECT * FROM \`${this.tableName}\``);
     const result: Record<string, any> = {};
     for (const row of rows) {
@@ -95,6 +113,11 @@ export class MysqlAdapter implements BaseAdapter {
   }
 
   async clear(): Promise<void> {
+    await this.ready;
     await this.pool.execute(`TRUNCATE TABLE \`${this.tableName}\``);
+  }
+
+  async close(): Promise<void> {
+    await this.pool.end();
   }
 }
