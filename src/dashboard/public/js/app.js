@@ -3,7 +3,7 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
-  const state = { status: null, settings: null, user: null };
+  const state = { status: null, settings: null, user: null, dataView: 'raw' };
 
   function node(html) {
     const tpl = document.createElement('template');
@@ -15,6 +15,9 @@
   }
   function prettyValue(v) {
     try { return JSON.stringify(v, null, 2); } catch { return String(v); }
+  }
+  function formatTime(ts) {
+    try { return new Date(ts).toLocaleString(); } catch { return String(ts); }
   }
 
   const ICON = {
@@ -30,6 +33,8 @@
     moon: '<svg viewBox="0 0 24 24" class="ico"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>',
     x: '<svg viewBox="0 0 24 24" class="ico"><path d="M18 6 6 18M6 6l12 12"/></svg>',
     db: '<svg viewBox="0 0 24 24" class="ico"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/></svg>',
+    refresh: '<svg viewBox="0 0 24 24" class="ico"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>',
+    save: '<svg viewBox="0 0 24 24" class="ico"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>',
   };
 
   function toast(message, type = 'success') {
@@ -79,9 +84,12 @@
     const next = I18n.lang === 'en' ? 'tr' : 'en';
     await setLang(next);
     $$('[data-lang-flag]').forEach((e) => (e.textContent = next.toUpperCase()));
-    if (state.user) { try { await Api.updateSettings({ language: next }); } catch (e) {} }
-    else renderAuth();
-    if (state.user) route();
+    if (state.user) {
+      try { await Api.updateSettings({ language: next }); } catch (e) {}
+      route();
+    } else {
+      renderAuth();
+    }
   }
 
   async function boot() {
@@ -102,7 +110,7 @@
     $$('[data-toggle-theme]').forEach((b) => b.addEventListener('click', toggleTheme));
     $$('[data-toggle-lang]').forEach((b) => b.addEventListener('click', toggleLang));
     $('[data-menu]')?.addEventListener('click', () => $('.sidebar').classList.toggle('open'));
-    $('[data-logout]')?.addEventListener('click', async () => { await Api.logout(); location.reload(); });
+    $('[data-logout]')?.addEventListener('click', async () => { try { await Api.logout(); } catch (e) {} location.reload(); });
     $$('.nav-item[data-route]').forEach((a) => a.addEventListener('click', () => $('.sidebar').classList.remove('open')));
     window.addEventListener('hashchange', route);
   }
@@ -128,7 +136,7 @@
       const c = setupForm.confirm.value;
       if (p !== c) { err.textContent = t('setup.mismatch'); return; }
       try {
-        await Api.setup(u, p);
+        await Api.setup({ username: u, password: p, company: setupForm.company.value });
         await enterApp();
       } catch (ex) {
         err.textContent = ex.code === 'weak_password' ? t('setup.passwordHint') : ex.code === 'invalid_username' ? t('setup.usernameHint') : t('common.error');
@@ -141,7 +149,7 @@
       const err = $('[data-error]', loginForm);
       err.textContent = '';
       try {
-        await Api.login(loginForm.username.value.trim(), loginForm.password.value);
+        await Api.login({ username: loginForm.username.value.trim(), password: loginForm.password.value, company: loginForm.company.value });
         await enterApp();
       } catch (ex) {
         if (ex.code === 'locked') {
@@ -156,7 +164,6 @@
 
   async function enterApp() {
     state.user = await Api.me();
-    state.settings = await Api.getSettings();
     $('#auth-screen').classList.add('hidden');
     $('#app').classList.remove('hidden');
     applyI18n($('#app'));
@@ -190,7 +197,7 @@
     const readOnly = state.user.readOnly;
 
     view.innerHTML = `
-      <div class="bento">
+      <div class="bento anim-in stagger">
         <section class="hero col-7">
           <div>
             <h2>${esc(greeting())}, ${esc(state.user.username)}</h2>
@@ -205,7 +212,7 @@
 
         <div class="card stat col-5">
           <div>
-            <div class="stat-num">${data.size}</div>
+            <div class="stat-num" data-count="${data.size}">0</div>
             <div class="stat-label">${esc(t('overview.totalKeys'))}</div>
           </div>
           <dl class="swatch-row">
@@ -217,37 +224,186 @@
 
         <div class="card col-12">
           <h3 style="margin:0 0 1rem;font-size:1.05rem">${esc(t('overview.quickActions'))}</h3>
-          <div class="bento">
-            <button class="qa col-4" data-qa="add"><span class="qa-ico">${ICON.plus}</span><span><p>${esc(t('overview.addEntry'))}</p><small>${esc(t('nav.data'))}</small></span></button>
+          <div class="bento stagger">
+            <button class="qa col-4" data-qa="add"><span class="qa-ico">${ICON.edit}</span><span><p>${esc(t('overview.addEntry'))}</p><small>${esc(t('nav.data'))}</small></span></button>
             <button class="qa col-4" data-qa="export"><span class="qa-ico">${ICON.download}</span><span><p>${esc(t('overview.exportData'))}</p><small>JSON</small></span></button>
             <button class="qa col-4" data-qa="security"><span class="qa-ico">${ICON.shield}</span><span><p>${esc(t('overview.manageSecurity'))}</p><small>${esc(t('nav.settings'))}</small></span></button>
           </div>
         </div>
       </div>`;
 
-    $('[data-qa="add"]').onclick = () => { location.hash = '#data'; setTimeout(() => openEntryModal(), 60); };
+    countUp($('[data-count]', view));
+    $('[data-qa="add"]').onclick = () => { location.hash = '#data'; };
     $('[data-qa="export"]').onclick = () => downloadExport();
     $('[data-qa="security"]').onclick = () => { location.hash = '#settings'; };
+  }
+
+  function countUp(el) {
+    if (!el) return;
+    const target = Number(el.getAttribute('data-count')) || 0;
+    if (target === 0 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { el.textContent = target; return; }
+    const start = performance.now();
+    const dur = 600;
+    const step = (now) => {
+      const p = Math.min(1, (now - start) / dur);
+      el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  function highlightJson(code) {
+    const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return escaped.replace(
+      /("(?:\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(?:true|false)\b|\bnull\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+      (m) => {
+        let cls = 'tok-num';
+        if (/^"/.test(m)) cls = /:\s*$/.test(m) ? 'tok-key' : 'tok-str';
+        else if (/^(true|false)$/.test(m)) cls = 'tok-bool';
+        else if (m === 'null') cls = 'tok-null';
+        return `<span class="${cls}">${m}</span>`;
+      }
+    );
+  }
+
+  function createCodeEditor(initial, onState) {
+    const wrap = node(`
+      <div class="code-editor">
+        <div class="code-gutter" data-gutter></div>
+        <div class="code-scroll">
+          <pre class="code-highlight" data-hl aria-hidden="true"><code></code></pre>
+          <textarea class="code-input" data-input spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+        </div>
+      </div>`);
+    const gutter = $('[data-gutter]', wrap);
+    const hl = $('[data-hl] code', wrap);
+    const ta = $('[data-input]', wrap);
+    ta.value = initial;
+
+    const renderHl = () => {
+      hl.innerHTML = highlightJson(ta.value) + '\n';
+      const lines = ta.value.split('\n').length;
+      let g = '';
+      for (let i = 1; i <= lines; i++) g += i + '\n';
+      gutter.textContent = g;
+    };
+    const validate = () => {
+      let ok = true;
+      try {
+        const parsed = JSON.parse(ta.value || 'null');
+        ok = parsed && typeof parsed === 'object' && !Array.isArray(parsed);
+      } catch { ok = false; }
+      onState && onState({ valid: ok });
+      return ok;
+    };
+    const sync = () => { hl.parentElement.scrollTop = ta.scrollTop; hl.parentElement.scrollLeft = ta.scrollLeft; gutter.scrollTop = ta.scrollTop; };
+
+    ta.addEventListener('input', () => { renderHl(); validate(); onState && onState({ dirty: true }); });
+    ta.addEventListener('scroll', sync);
+    ta.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const s = ta.selectionStart, en = ta.selectionEnd;
+        ta.value = ta.value.slice(0, s) + '  ' + ta.value.slice(en);
+        ta.selectionStart = ta.selectionEnd = s + 2;
+        renderHl();
+      }
+    });
+
+    renderHl();
+    return {
+      el: wrap,
+      getValue: () => ta.value,
+      setValue: (v) => { ta.value = v; renderHl(); validate(); },
+      validate,
+      focus: () => ta.focus(),
+    };
   }
 
   async function renderData() {
     const view = $('#view');
     view.innerHTML = `<div class="empty">${t('common.loading')}</div>`;
-    const { entries } = await Api.getData();
     const readOnly = state.user.readOnly;
 
     view.innerHTML = `
-      <div class="page-head page-head-row">
+      <div class="page-head page-head-row anim-in">
         <div><h1>${esc(t('data.title'))}</h1><p>${esc(t('data.subtitle'))}</p></div>
-        ${readOnly ? '' : `<button class="btn btn-primary" data-add>${ICON.plus}<span>${esc(t('data.add'))}</span></button>`}
+        <div class="seg" data-view-toggle>
+          <button data-v="raw" class="${state.dataView === 'raw' ? 'active' : ''}">${esc(t('data.rawTab'))}</button>
+          <button data-v="cards" class="${state.dataView === 'cards' ? 'active' : ''}">${esc(t('data.cardsTab'))}</button>
+        </div>
       </div>
+      <div data-body class="anim-in"></div>`;
+
+    $$('[data-view-toggle] button', view).forEach((b) => b.onclick = () => {
+      state.dataView = b.getAttribute('data-v');
+      renderData();
+    });
+
+    if (state.dataView === 'raw') return renderRaw($('[data-body]', view), readOnly);
+    return renderCards($('[data-body]', view), readOnly);
+  }
+
+  async function renderRaw(host, readOnly) {
+    const { json } = await Api.getRaw();
+    const text = JSON.stringify(json, null, 2);
+
+    host.innerHTML = `
+      <div class="raw-toolbar">
+        <span class="hint">${esc(t('data.rawHint'))}</span>
+        <div class="raw-tools">
+          <span class="status-chip" data-status></span>
+          <button class="btn btn-ghost" data-format>${esc(t('data.format'))}</button>
+          ${readOnly ? '' : `<button class="btn btn-primary" data-save>${ICON.save}<span>${esc(t('data.saveDb'))}</span></button>`}
+        </div>
+      </div>
+      <div data-editor></div>`;
+
+    const status = $('[data-status]', host);
+    const setStatus = (st) => {
+      if (st.valid === false) { status.className = 'status-chip bad'; status.textContent = t('data.rawInvalid'); }
+      else if (st.dirty) { status.className = 'status-chip warn'; status.textContent = t('data.unsaved'); }
+      else { status.className = 'status-chip ok'; status.textContent = t('data.valid'); }
+    };
+
+    const editor = createCodeEditor(text, setStatus);
+    if (readOnly) $('[data-input]', editor.el).setAttribute('readonly', 'readonly');
+    $('[data-editor]', host).appendChild(editor.el);
+    setStatus({ valid: true });
+
+    $('[data-format]', host).onclick = () => {
+      try {
+        const parsed = JSON.parse(editor.getValue());
+        editor.setValue(JSON.stringify(parsed, null, 2));
+        setStatus({ dirty: true });
+      } catch { toast(t('data.rawInvalid'), 'error'); }
+    };
+
+    const saveBtn = $('[data-save]', host);
+    if (saveBtn) saveBtn.onclick = async () => {
+      let parsed;
+      try { parsed = JSON.parse(editor.getValue()); }
+      catch { toast(t('data.rawInvalid'), 'error'); setStatus({ valid: false }); return; }
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) { toast(t('data.rawObjectOnly'), 'error'); return; }
+      try {
+        await Api.setRaw(parsed);
+        toast(t('data.rawSaved'));
+        setStatus({ valid: true });
+      } catch (ex) { toast(t('common.error'), 'error'); }
+    };
+  }
+
+  async function renderCards(host, readOnly) {
+    const { entries } = await Api.getData();
+    host.innerHTML = `
       <div class="toolbar">
         <div class="search">${ICON.search}<input data-search placeholder="${esc(t('data.search'))}" /></div>
+        ${readOnly ? '' : `<button class="btn btn-primary" data-add>${ICON.plus}<span>${esc(t('data.add'))}</span></button>`}
         ${readOnly || entries.length === 0 ? '' : `<button class="btn btn-ghost" data-clear>${ICON.trash}<span>${esc(t('data.clearAll'))}</span></button>`}
       </div>
       <div data-list></div>`;
 
-    const list = $('[data-list]', view);
+    const list = $('[data-list]', host);
     const render = (filter = '') => {
       const f = filter.toLowerCase();
       const rows = entries.filter((e) => e.key.toLowerCase().includes(f));
@@ -257,25 +413,20 @@
         return;
       }
       if (rows.length === 0) { list.innerHTML = `<div class="empty"><p>${esc(t('data.emptySearch'))}</p></div>`; return; }
-      list.innerHTML = `<div class="entry-grid">${rows.map(entryCard).join('')}</div>`;
+      list.innerHTML = `<div class="entry-grid stagger">${rows.map(entryCard).join('')}</div>`;
       $$('[data-edit]', list).forEach((b) => b.addEventListener('click', () => {
-        const e = entries.find((x) => x.key === b.getAttribute('data-edit'));
-        openEntryModal(e);
+        openEntryModal(entries.find((x) => x.key === b.getAttribute('data-edit')));
       }));
       $$('[data-del]', list).forEach((b) => b.addEventListener('click', async () => {
         const key = b.getAttribute('data-del');
-        if (await confirmDialog(t('data.deleteConfirm', { key }))) {
-          await Api.deleteData(key);
-          toast(t('common.saved'));
-          renderData();
-        }
+        if (await confirmDialog(t('data.deleteConfirm', { key }))) { await Api.deleteData(key); toast(t('common.saved')); renderData(); }
       }));
     };
     render();
 
-    $('[data-search]', view).addEventListener('input', (e) => render(e.target.value));
-    $('[data-add]', view)?.addEventListener('click', () => openEntryModal());
-    $('[data-clear]', view)?.addEventListener('click', async () => {
+    $('[data-search]', host).addEventListener('input', (e) => render(e.target.value));
+    $('[data-add]', host)?.addEventListener('click', () => openEntryModal());
+    $('[data-clear]', host)?.addEventListener('click', async () => {
       if (await confirmDialog(t('data.clearConfirm'))) { await Api.clearData(); toast(t('common.saved')); renderData(); }
     });
   }
@@ -299,7 +450,7 @@
     const body = node('<div style="display:flex;flex-direction:column;gap:1rem"></div>');
     body.innerHTML = `
       <label class="field"><span>${esc(t('data.key'))}</span><input data-key value="${entry ? esc(entry.key) : ''}" ${editing ? 'readonly' : ''} placeholder="user.profile.name" /></label>
-      <label class="field"><span>${esc(t('data.valueJson'))}</span><textarea data-val spellcheck="false">${entry ? esc(prettyValue(entry.value)) : '""'}</textarea><small class="hint">e.g. "text", 42, true, { "a": 1 }, [1,2,3]</small></label>
+      <label class="field"><span>${esc(t('data.valueJson'))}</span><textarea data-val spellcheck="false">${entry ? esc(prettyValue(entry.value)) : '""'}</textarea></label>
       <p class="form-error" data-err></p>`;
     const footer = node('<div style="display:flex;gap:.6rem"></div>');
     const cancel = node(`<button class="btn btn-ghost">${esc(t('common.cancel'))}</button>`);
@@ -315,12 +466,8 @@
       let value;
       try { value = JSON.parse($('[data-val]', body).value); }
       catch { err.textContent = t('data.invalidJson'); return; }
-      try {
-        await Api.setData(key, value);
-        close();
-        toast(t('common.saved'));
-        renderData();
-      } catch (ex) { err.textContent = t('common.error'); }
+      try { await Api.setData(key, value); close(); toast(t('common.saved')); renderData(); }
+      catch (ex) { err.textContent = t('common.error'); }
     });
     setTimeout(() => $(editing ? '[data-val]' : '[data-key]', body).focus(), 50);
   }
@@ -336,8 +483,8 @@
     const view = $('#view');
     const readOnly = state.user.readOnly;
     view.innerHTML = `
-      <div class="page-head"><h1>${esc(t('transfer.title'))}</h1><p>${esc(t('transfer.subtitle'))}</p></div>
-      <div class="set-grid">
+      <div class="page-head anim-in"><h1>${esc(t('transfer.title'))}</h1><p>${esc(t('transfer.subtitle'))}</p></div>
+      <div class="set-grid anim-in">
         <div class="set-card">
           <h3>${esc(t('transfer.exportTitle'))}</h3>
           <p class="set-desc">${esc(t('transfer.exportDesc'))}</p>
@@ -409,6 +556,12 @@
     };
   }
 
+  function logBadge(type) {
+    const danger = ['login_failed', 'login_locked', 'ip_blocked', 'honeypot', 'csrf_failed'];
+    const cls = danger.includes(type) ? 'warn' : type === 'login_success' || type === 'setup' ? 'online' : 'candy';
+    return `<span class="badge ${cls}">${esc(t('log.' + type) || type)}</span>`;
+  }
+
   async function renderSettings() {
     const view = $('#view');
     const cfg = await Api.getSettings();
@@ -416,8 +569,8 @@
     const sec = cfg.security;
 
     view.innerHTML = `
-      <div class="page-head"><h1>${esc(t('settings.title'))}</h1><p>${esc(t('settings.subtitle'))}</p></div>
-      <div class="set-grid">
+      <div class="page-head anim-in"><h1>${esc(t('settings.title'))}</h1><p>${esc(t('settings.subtitle'))}</p></div>
+      <div class="set-grid anim-in">
 
         <div class="set-card">
           <h3>${esc(t('settings.server'))}</h3>
@@ -444,9 +597,11 @@
           </div>
         </div>
 
-        <div class="set-card col-12" style="grid-column:1/-1">
-          <h3>${esc(t('settings.security'))}</h3>
-          <p class="set-desc">${esc(t('settings.readOnlyHint'))}</p>
+        <div class="set-card" style="grid-column:1/-1">
+          <div class="row-between" style="margin-bottom:1.3rem">
+            <div><h3 style="margin:0 0 .3rem">${esc(t('settings.security'))}</h3><p class="set-desc" style="margin:0">${esc(t('settings.readOnlyHint'))}</p></div>
+            <span class="badge candy">${esc(t('settings.yourIp'))}: ${esc(cfg.currentIp)}</span>
+          </div>
           <div class="set-row row-between">
             <span style="font-weight:600">${esc(t('settings.readOnly'))}</span>
             <label class="toggle"><input type="checkbox" data-readonly ${sec.readOnly ? 'checked' : ''}><span class="track"></span></label>
@@ -461,6 +616,17 @@
             <div class="set-row"><label class="field"><span>${esc(t('settings.sessionTtl'))}</span><input data-ttl type="number" min="1" value="${esc(Math.round(sec.sessionTtlMs / 3600000))}" /></label></div>
           </div>
           <div class="set-actions"><button class="btn btn-primary" data-save-sec>${esc(t('common.save'))}</button></div>
+        </div>
+
+        <div class="set-card" style="grid-column:1/-1">
+          <div class="row-between" style="margin-bottom:1rem">
+            <div><h3 style="margin:0 0 .3rem">${esc(t('settings.securityLog'))}</h3><p class="set-desc" style="margin:0">${esc(t('settings.securityLogDesc'))}</p></div>
+            <div style="display:flex;gap:.5rem">
+              <button class="icon-btn" data-log-refresh title="${esc(t('common.refresh'))}">${ICON.refresh}</button>
+              <button class="btn btn-ghost" data-log-clear>${esc(t('settings.clearLog'))}</button>
+            </div>
+          </div>
+          <div class="log-wrap" data-log></div>
         </div>
 
         <div class="set-card">
@@ -526,6 +692,28 @@
         err.textContent = ex.code === 'weak_password' ? t('setup.passwordHint') : t('login.invalid');
       }
     };
+
+    const logHost = $('[data-log]', view);
+    const loadLog = async () => {
+      const { events } = await Api.securityLog();
+      if (!events.length) { logHost.innerHTML = `<div class="empty" style="padding:2rem"><p>${esc(t('settings.logEmpty'))}</p></div>`; return; }
+      logHost.innerHTML = `
+        <table class="log-table">
+          <thead><tr><th>${esc(t('settings.logTime'))}</th><th>${esc(t('settings.logType'))}</th><th>${esc(t('settings.logIp'))}</th><th>${esc(t('settings.logDetail'))}</th><th>${esc(t('settings.logClient'))}</th></tr></thead>
+          <tbody>${events.map((e) => `<tr>
+            <td class="mono nowrap">${esc(formatTime(e.ts))}</td>
+            <td>${logBadge(e.type)}</td>
+            <td class="mono">${esc(e.ip)}</td>
+            <td class="mono dim">${esc(e.detail || e.path || '')}</td>
+            <td class="dim ua">${esc(e.ua || '')}</td>
+          </tr>`).join('')}</tbody>
+        </table>`;
+    };
+    $('[data-log-refresh]', view).onclick = loadLog;
+    $('[data-log-clear]', view).onclick = async () => {
+      if (await confirmDialog(t('settings.clearLog'), false)) { await Api.clearLog(); loadLog(); }
+    };
+    loadLog();
   }
 
   async function toggleLangTo(lang) {

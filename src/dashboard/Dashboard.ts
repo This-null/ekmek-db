@@ -26,11 +26,12 @@ export class Dashboard {
   private store: ConfigStore;
   private server: DashboardServer | null = null;
   private readonly options: DashboardOptions;
+  private readonly configFile: string;
 
   constructor(private db: EkmekDB, options: DashboardOptions = {}) {
     this.options = options;
-    const configPath = options.configPath ?? path.join(process.cwd(), 'ekmek-dashboard.config.json');
-    this.store = new ConfigStore(configPath);
+    this.configFile = options.configPath ?? path.join(process.cwd(), 'ekmek-dashboard.config.json');
+    this.store = new ConfigStore(this.configFile);
   }
 
   async start(): Promise<void> {
@@ -39,12 +40,15 @@ export class Dashboard {
     if (this.options.host !== undefined) patch.host = this.options.host;
     if (Object.keys(patch).length > 0) await this.store.update(patch);
 
+    const logPath = path.join(path.dirname(this.configFile), 'ekmek-dashboard.log.json');
+
     this.server = new DashboardServer({
       store: this.store,
       db: this.db,
       appVersion: readVersion(),
       dbName: this.options.dbName ?? 'ekmek-db',
       publicDir: resolvePublicDir(),
+      logPath,
       quiet: this.options.quiet,
     });
     await this.server.start();

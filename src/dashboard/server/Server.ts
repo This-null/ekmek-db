@@ -6,7 +6,8 @@ import os from 'os';
 import { EkmekDB } from '../../core/EkmekDB';
 import { ConfigStore } from './config';
 import { SessionManager, parseCookies } from './auth';
-import { LoginThrottle, clientIp, isIpAllowed, applySecurityHeaders } from './security';
+import { LoginThrottle, clientIp, isIpAllowed, isHoneypotPath, applySecurityHeaders } from './security';
+import { SecurityLog } from './securityLog';
 import { Api, RequestContext } from './api';
 import { sendJson, sendText } from './http';
 
@@ -27,6 +28,7 @@ export interface DashboardServerDeps {
   appVersion: string;
   dbName: string;
   publicDir: string;
+  logPath: string;
   quiet?: boolean;
 }
 
@@ -34,6 +36,7 @@ export class DashboardServer {
   private server: http.Server | null = null;
   private sessions: SessionManager;
   private throttle: LoginThrottle;
+  private securityLog: SecurityLog;
   private api: Api;
   private currentPort: number;
   private currentHost: string;
@@ -44,11 +47,13 @@ export class DashboardServer {
     this.currentHost = cfg.host;
     this.sessions = new SessionManager(cfg.security.sessionTtlMs);
     this.throttle = new LoginThrottle(cfg.security);
+    this.securityLog = new SecurityLog(deps.logPath);
     this.api = new Api({
       store: deps.store,
       db: deps.db,
       sessions: this.sessions,
       throttle: this.throttle,
+      securityLog: this.securityLog,
       appVersion: deps.appVersion,
       dbName: deps.dbName,
       rebind: (port, host) => this.rebind(port, host),
@@ -84,7 +89,8 @@ export class DashboardServer {
     }
   }
 
-  stop(): Promise<void> {
+  async stop(): Promise<void> {
+    await this.securityLog.flush().catch(() => undefined);
     return new Promise((resolve) => {
       if (!this.server) return resolve();
       this.server.close(() => resolve());
@@ -96,14 +102,23 @@ export class DashboardServer {
     applySecurityHeaders(res);
     const cfg = this.deps.store.get();
     const ip = clientIp(req);
+    const ua = String(req.headers['user-agent'] || '');
+
+    const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+    const pathname = decodeURIComponent(url.pathname);
+
+    if (isHoneypotPath(pathname)) {
+      this.securityLog.record({ type: 'honeypot', ip, ua, path: pathname, detail: req.method });
+      sendText(res, 404, 'Not Found');
+      return;
+    }
 
     if (!isIpAllowed(ip, cfg.security)) {
+      this.securityLog.record({ type: 'ip_blocked', ip, ua, path: pathname });
       sendText(res, 403, 'Forbidden');
       return;
     }
 
-    const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
-    const pathname = decodeURIComponent(url.pathname);
     const cookies = parseCookies(req.headers.cookie);
     const token = cookies['ekmek_sid'];
     const username = this.sessions.verify(token);
@@ -114,7 +129,9 @@ export class DashboardServer {
       method: req.method || 'GET',
       pathname,
       ip,
+      ua,
       token,
+      csrfHeader: String(req.headers['x-csrf-token'] || '') || undefined,
       username,
     };
 
