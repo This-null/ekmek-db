@@ -4,6 +4,7 @@ import { ConfigStore, SecuritySettings } from './config';
 import { SessionManager, hashPassword, verifyPassword } from './auth';
 import { LoginThrottle, isLoopback } from './security';
 import { SecurityLog, SecurityEventType } from './securityLog';
+import { FileManager } from './files';
 import { readJsonBody, sendJson, setSessionCookie, clearSessionCookie } from './http';
 
 export interface RequestContext {
@@ -13,6 +14,7 @@ export interface RequestContext {
   pathname: string;
   ip: string;
   ua: string;
+  query: Record<string, string>;
   token?: string;
   csrfHeader?: string;
   username: string | null;
@@ -24,6 +26,7 @@ interface ApiDeps {
   sessions: SessionManager;
   throttle: LoginThrottle;
   securityLog: SecurityLog;
+  files: FileManager;
   appVersion: string;
   dbName: string;
   rebind: (port: number, host: string) => Promise<void>;
@@ -100,6 +103,16 @@ export class Api {
           return this.getLog(ctx);
         case 'POST /api/security/log/clear':
           return this.clearLog(ctx);
+        case 'GET /api/files':
+          return await this.listFiles(ctx);
+        case 'GET /api/files/read':
+          return await this.readFile(ctx);
+        case 'POST /api/files/save':
+          return await this.saveFile(ctx);
+        case 'POST /api/files/create':
+          return await this.createFile(ctx);
+        case 'POST /api/files/delete':
+          return await this.deleteFile(ctx);
         default:
           sendJson(res, 404, { error: 'not_found' });
           return true;
@@ -441,6 +454,63 @@ export class Api {
   private clearLog(ctx: RequestContext): boolean {
     this.deps.securityLog.clear();
     sendJson(ctx.res, 200, { ok: true });
+    return true;
+  }
+
+  private async listFiles(ctx: RequestContext): Promise<boolean> {
+    const files = await this.deps.files.list();
+    sendJson(ctx.res, 200, { dir: this.deps.files.dir, files });
+    return true;
+  }
+
+  private async readFile(ctx: RequestContext): Promise<boolean> {
+    const name = String(ctx.query.name ?? '');
+    const content = await this.deps.files.read(name);
+    if (content === null) {
+      sendJson(ctx.res, 404, { error: 'not_found' });
+      return true;
+    }
+    sendJson(ctx.res, 200, { name, content });
+    return true;
+  }
+
+  private async saveFile(ctx: RequestContext): Promise<boolean> {
+    if (!this.guardReadOnly(ctx.res)) return true;
+    const body = await readJsonBody(ctx.req);
+    const name = String(body.name ?? '');
+    const content = String(body.content ?? '');
+    const res = await this.deps.files.write(name, content);
+    if (!res.ok) {
+      sendJson(ctx.res, 400, { error: res.error });
+      return true;
+    }
+    this.log(ctx, 'data_changed', `file save ${name}`);
+    sendJson(ctx.res, 200, { ok: true, name });
+    return true;
+  }
+
+  private async createFile(ctx: RequestContext): Promise<boolean> {
+    if (!this.guardReadOnly(ctx.res)) return true;
+    const body = await readJsonBody(ctx.req);
+    let name = String(body.name ?? '').trim();
+    if (name && !/\.json$/i.test(name)) name += '.json';
+    const res = await this.deps.files.create(name);
+    if (!res.ok) {
+      sendJson(ctx.res, 400, { error: res.error });
+      return true;
+    }
+    this.log(ctx, 'data_changed', `file create ${name}`);
+    sendJson(ctx.res, 201, { ok: true, name });
+    return true;
+  }
+
+  private async deleteFile(ctx: RequestContext): Promise<boolean> {
+    if (!this.guardReadOnly(ctx.res)) return true;
+    const body = await readJsonBody(ctx.req);
+    const name = String(body.name ?? '');
+    const removed = await this.deps.files.remove(name);
+    this.log(ctx, 'data_changed', `file delete ${name}`);
+    sendJson(ctx.res, 200, { ok: true, removed });
     return true;
   }
 }

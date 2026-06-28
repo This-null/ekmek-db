@@ -1,6 +1,6 @@
 {
   "name": "ekmek-db",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "A lightweight, robust, and type-safe database wrapper",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

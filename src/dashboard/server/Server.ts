@@ -8,6 +8,7 @@ import { ConfigStore } from './config';
 import { SessionManager, parseCookies } from './auth';
 import { LoginThrottle, clientIp, isIpAllowed, isHoneypotPath, applySecurityHeaders } from './security';
 import { SecurityLog } from './securityLog';
+import { FileManager } from './files';
 import { Api, RequestContext } from './api';
 import { sendJson, sendText } from './http';
 
@@ -29,6 +30,7 @@ export interface DashboardServerDeps {
   dbName: string;
   publicDir: string;
   logPath: string;
+  dataDir: string;
   quiet?: boolean;
 }
 
@@ -37,6 +39,7 @@ export class DashboardServer {
   private sessions: SessionManager;
   private throttle: LoginThrottle;
   private securityLog: SecurityLog;
+  private files: FileManager;
   private api: Api;
   private currentPort: number;
   private currentHost: string;
@@ -48,12 +51,14 @@ export class DashboardServer {
     this.sessions = new SessionManager(cfg.security.sessionTtlMs);
     this.throttle = new LoginThrottle(cfg.security);
     this.securityLog = new SecurityLog(deps.logPath);
+    this.files = new FileManager(deps.dataDir);
     this.api = new Api({
       store: deps.store,
       db: deps.db,
       sessions: this.sessions,
       throttle: this.throttle,
       securityLog: this.securityLog,
+      files: this.files,
       appVersion: deps.appVersion,
       dbName: deps.dbName,
       rebind: (port, host) => this.rebind(port, host),
@@ -123,6 +128,9 @@ export class DashboardServer {
     const token = cookies['ekmek_sid'];
     const username = this.sessions.verify(token);
 
+    const query: Record<string, string> = {};
+    url.searchParams.forEach((v, k) => { query[k] = v; });
+
     const ctx: RequestContext = {
       req,
       res,
@@ -130,6 +138,7 @@ export class DashboardServer {
       pathname,
       ip,
       ua,
+      query,
       token,
       csrfHeader: String(req.headers['x-csrf-token'] || '') || undefined,
       username,

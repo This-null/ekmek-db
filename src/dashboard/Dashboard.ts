@@ -9,6 +9,7 @@ export interface DashboardOptions {
   host?: string;
   configPath?: string;
   dbName?: string;
+  dataDir?: string;
   quiet?: boolean;
 }
 
@@ -41,6 +42,7 @@ export class Dashboard {
     if (Object.keys(patch).length > 0) await this.store.update(patch);
 
     const logPath = path.join(path.dirname(this.configFile), 'ekmek-dashboard.log.json');
+    const dataDir = this.options.dataDir ?? path.join(process.cwd(), 'data');
 
     this.server = new DashboardServer({
       store: this.store,
@@ -49,6 +51,7 @@ export class Dashboard {
       dbName: this.options.dbName ?? 'ekmek-db',
       publicDir: resolvePublicDir(),
       logPath,
+      dataDir,
       quiet: this.options.quiet,
     });
     await this.server.start();
