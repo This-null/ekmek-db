@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.0.6
+
+### Fixed
+- **IP allowlist lockout (critical):** saving an allowlist that didn't include your own IP locked you out of the dashboard entirely (every request, including the page itself, returned `403`). Localhost is now always allowed, and your current IP is auto-added to any allowlist you save. The blocklist can no longer contain localhost or your own IP.
+
+### Added — Dashboard
+- **Raw JSON editor:** edit the whole database directly as JSON in a code editor with line numbers and syntax highlighting (format / validate / save). The previous per-key card editor remains available via a Raw / Cards toggle.
+- **CSRF protection:** every authenticated state-changing request now requires a per-session `X-CSRF-Token`.
+- **Honeypot traps:** common attack paths (`/wp-login.php`, `/.env`, `/phpmyadmin`, …) and a hidden login form field are watched; hits are logged and rejected.
+- **Access & security log:** records logins, failed attempts, locked-out and blocked IPs, honeypot hits, settings/data changes, and imports — with timestamp, IP, and user-agent. Viewable in Settings → Security, persisted to `ekmek-dashboard.log.json`.
+- **Animated UI:** staggered card entrances, view transitions, a count-up stat, and subtle micro-interactions, all disabled under `prefers-reduced-motion`.
+
 ## 0.0.5
 
 ### Added — Web Dashboard 🖥️

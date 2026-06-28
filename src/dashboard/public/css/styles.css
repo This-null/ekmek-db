@@ -364,3 +364,103 @@ h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.025em;
 }
 
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+
+.hp-field { position: absolute !important; left: -9999px !important; top: -9999px; width: 1px; height: 1px; opacity: 0; overflow: hidden; pointer-events: none; }
+
+@keyframes animIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.anim-in { animation: animIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.stagger > * { animation: animIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.stagger > *:nth-child(2) { animation-delay: 0.07s; }
+.stagger > *:nth-child(3) { animation-delay: 0.12s; }
+.stagger > *:nth-child(4) { animation-delay: 0.17s; }
+.stagger > *:nth-child(5) { animation-delay: 0.22s; }
+.stagger > *:nth-child(6) { animation-delay: 0.27s; }
+.stagger > *:nth-child(7) { animation-delay: 0.32s; }
+.stagger > *:nth-child(8) { animation-delay: 0.37s; }
+.loaf { animation: float 4s ease-in-out infinite; }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+.raw-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.9rem; flex-wrap: wrap; }
+.raw-tools { display: flex; align-items: center; gap: 0.6rem; }
+.status-chip { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; padding: 0.35rem 0.65rem; border-radius: 8px; white-space: nowrap; }
+.status-chip.ok { color: var(--accent-text); background: var(--accent-soft); }
+.status-chip.warn { color: #c98a00; background: rgba(201, 138, 0, 0.14); }
+.status-chip.bad { color: var(--danger); background: var(--danger-soft); }
+
+.code-editor {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface-2);
+  height: 62vh;
+  min-height: 360px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  line-height: 1.65;
+  box-shadow: var(--shadow);
+}
+.code-gutter {
+  padding: 1rem 0.7rem;
+  text-align: right;
+  color: var(--text-faint);
+  user-select: none;
+  white-space: pre;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--surface) 60%, var(--surface-2));
+  border-right: 1px solid var(--border);
+  min-width: 3rem;
+}
+.code-scroll { position: relative; overflow: hidden; }
+.code-highlight, .code-input {
+  margin: 0;
+  padding: 1rem;
+  border: 0;
+  width: 100%;
+  height: 100%;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  white-space: pre;
+  tab-size: 2;
+  box-sizing: border-box;
+}
+.code-highlight {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: var(--text);
+  overflow: auto;
+  scrollbar-width: none;
+}
+.code-highlight::-webkit-scrollbar { display: none; }
+.code-highlight code { font: inherit; }
+.code-input {
+  position: relative;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--accent);
+  resize: none;
+  outline: none;
+  overflow: auto;
+  z-index: 1;
+}
+.tok-key { color: var(--candy); }
+.tok-str { color: var(--accent-text); }
+.tok-num { color: #d98e4f; }
+.tok-bool { color: #e26d9e; }
+.tok-null { color: var(--text-faint); }
+
+.log-wrap { overflow-x: auto; }
+.log-table { width: 100%; border-collapse: collapse; }
+.log-table th { text-align: left; color: var(--text-faint); font-weight: 600; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--border); }
+.log-table td { padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--border); vertical-align: middle; font-size: 0.8rem; }
+.log-table tr:last-child td { border-bottom: 0; }
+.log-table tr { transition: background 0.12s; }
+.log-table tbody tr:hover { background: var(--surface-2); }
+.log-table .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; }
+.log-table .dim { color: var(--text-dim); }
+.log-table .nowrap { white-space: nowrap; }
+.log-table .ua { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.72rem; color: var(--text-faint); }

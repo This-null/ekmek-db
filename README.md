@@ -172,11 +172,12 @@ A self-contained, login-protected web dashboard to manage your database **live**
 
 ## What you can do
 
-- **Live data control** — browse, add, edit (as JSON), and delete every key without touching a file.
+- **Raw JSON editor** — edit the entire database directly in a code editor with line numbers and syntax highlighting, exactly like editing the file by hand. Format, validate, and save the whole thing at once. (Or switch to a card view to edit keys one by one.)
 - **Import / Export** — download a full JSON snapshot, or load a `.json` file (merge or replace).
 - **Settings** — change the port/bind address (re-binds instantly), theme, language, and security — all from the UI.
-- **Security** — IP allowlist / blocklist, read-only mode, login brute-force lockout, and a hashed admin password.
+- **Security** — IP allowlist / blocklist, read-only mode, login brute-force lockout, CSRF protection, honeypot traps, and an access log of who tried to connect (IP, time, browser).
 - **i18n** — every label is bound to language files (`en` / `tr`); switch with one click.
+- **Animated UI** — staggered card entrances, view transitions, and subtle micro-interactions (all disabled under `prefers-reduced-motion`).
 
 ## Quick start (CLI)
 
@@ -235,8 +236,11 @@ await dashboard.start();
 The dashboard is built for a **local network**. If you forward a port on your router to expose it to the outside world, harden it first:
 
 - **Set a strong admin password** (minimum 8 characters; longer is better). It is stored only as a scrypt salt + hash.
-- **Use the IP allowlist** (Settings → Security). When set, **only** the listed IPs can connect — everything else gets `403`.
+- **Use the IP allowlist** (Settings → Security). When set, **only** the listed IPs can connect — everything else gets `403`. Localhost is always allowed and your current IP is added automatically, so you can never lock yourself out.
 - **Brute-force lockout** is on by default: after N failed logins an IP is locked out. Tune the attempt count and lockout duration in Settings.
+- **CSRF protection** — every state-changing request requires a per-session token, on top of `SameSite=Strict` cookies.
+- **Honeypot traps** — common attack paths (`/wp-login.php`, `/.env`, `/phpmyadmin`, …) and a hidden form field are watched; anything that touches them is logged and rejected.
+- **Access & security log** (Settings → Security) records logins, failed attempts, blocked IPs, honeypot hits, and config changes with timestamp, IP, and browser. Stored locally in `ekmek-dashboard.log.json`.
 - **Read-only mode** blocks every change to your data while keeping the dashboard browsable — handy when exposing a live view.
 - **Sessions** are HttpOnly, `SameSite=Strict` cookies with a configurable lifetime; changing the password invalidates all sessions.
 - **Bind to `127.0.0.1`** if you only need local access, so the port is never reachable from the network at all.

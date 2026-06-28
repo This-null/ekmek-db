@@ -25,7 +25,10 @@
     "minutes": "minutes",
     "seconds": "seconds",
     "search": "Search",
-    "close": "Close"
+    "close": "Close",
+    "refresh": "Refresh",
+    "copy": "Copy",
+    "copied": "Copied"
   },
   "theme": {
     "toggle": "Toggle theme",
@@ -63,7 +66,7 @@
     "version": "Version",
     "engine": "Engine",
     "quickActions": "Quick actions",
-    "addEntry": "Add entry",
+    "addEntry": "Edit data",
     "exportData": "Export data",
     "viewData": "Browse data",
     "manageSecurity": "Security",
@@ -71,7 +74,7 @@
   },
   "data": {
     "title": "Data",
-    "subtitle": "Every top-level key in your database. Edit values as JSON.",
+    "subtitle": "Edit the whole database as raw JSON, or browse it as cards.",
     "search": "Search keys…",
     "add": "Add entry",
     "key": "Key",
@@ -87,7 +90,17 @@
     "editEntry": "Edit entry",
     "valueJson": "Value (JSON)",
     "invalidJson": "Value is not valid JSON.",
-    "keyRequired": "Key is required."
+    "keyRequired": "Key is required.",
+    "rawTab": "Raw JSON",
+    "cardsTab": "Cards",
+    "format": "Format",
+    "rawHint": "Edit the entire database directly. Top-level keys become your records.",
+    "rawSaved": "Database saved.",
+    "rawInvalid": "Invalid JSON — fix it before saving.",
+    "rawObjectOnly": "The root must be a JSON object, e.g. { \"key\": value }.",
+    "saveDb": "Save database",
+    "unsaved": "Unsaved changes",
+    "valid": "Valid JSON"
   },
   "transfer": {
     "title": "Import / Export",
@@ -122,7 +135,7 @@
     "readOnly": "Read-only mode",
     "readOnlyHint": "Block all changes to the data. Settings stay editable.",
     "allowlist": "IP allowlist",
-    "allowlistHint": "One IP per line. When set, only these IPs may connect. Leave empty to allow all.",
+    "allowlistHint": "One IP per line. When set, only these IPs may connect. Localhost is always allowed, and your current IP is added automatically so you can't lock yourself out.",
     "blocklist": "IP blocklist",
     "blocklistHint": "One IP per line. These IPs are always denied.",
     "maxAttempts": "Max login attempts",
@@ -135,6 +148,30 @@
     "passwordChanged": "Password changed. Please sign in again.",
     "configPath": "Config file",
     "restartNotice": "Server re-bound to {host}:{port}.",
-    "saved": "Settings saved."
+    "saved": "Settings saved.",
+    "yourIp": "Your IP",
+    "securityLog": "Access & security log",
+    "securityLogDesc": "Recent connection attempts, logins, and blocked requests.",
+    "logTime": "Time",
+    "logType": "Event",
+    "logIp": "IP",
+    "logDetail": "Detail",
+    "logClient": "Client",
+    "logEmpty": "No events recorded yet.",
+    "clearLog": "Clear log"
+  },
+  "log": {
+    "login_success": "Login success",
+    "login_failed": "Login failed",
+    "login_locked": "Login locked",
+    "setup": "Initial setup",
+    "logout": "Logout",
+    "password_changed": "Password changed",
+    "ip_blocked": "IP blocked",
+    "honeypot": "Honeypot trap",
+    "csrf_failed": "CSRF rejected",
+    "settings_changed": "Settings changed",
+    "data_changed": "Data changed",
+    "import": "Import"
   }
 }

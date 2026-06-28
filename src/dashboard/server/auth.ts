@@ -17,6 +17,12 @@ export function verifyPassword(password: string, user: AdminUser): boolean {
 interface Session {
   username: string;
   expiresAt: number;
+  csrf: string;
+}
+
+export interface SessionInfo {
+  token: string;
+  csrf: string;
 }
 
 export class SessionManager {
@@ -28,10 +34,11 @@ export class SessionManager {
     this.ttlMs = ttlMs;
   }
 
-  create(username: string): string {
+  create(username: string): SessionInfo {
     const token = crypto.randomBytes(32).toString('hex');
-    this.sessions.set(token, { username, expiresAt: Date.now() + this.ttlMs });
-    return token;
+    const csrf = crypto.randomBytes(24).toString('hex');
+    this.sessions.set(token, { username, expiresAt: Date.now() + this.ttlMs, csrf });
+    return { token, csrf };
   }
 
   verify(token: string | undefined): string | null {
@@ -43,6 +50,14 @@ export class SessionManager {
       return null;
     }
     return session.username;
+  }
+
+  csrfFor(token: string | undefined): string | null {
+    if (!token) return null;
+    const session = this.sessions.get(token);
+    if (!session) return null;
+    if (Date.now() > session.expiresAt) return null;
+    return session.csrf;
   }
 
   destroy(token: string | undefined): void {

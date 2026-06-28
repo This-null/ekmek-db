@@ -25,7 +25,10 @@
     "minutes": "dakika",
     "seconds": "saniye",
     "search": "Ara",
-    "close": "Kapat"
+    "close": "Kapat",
+    "refresh": "Yenile",
+    "copy": "Kopyala",
+    "copied": "Kopyalandı"
   },
   "theme": {
     "toggle": "Temayı değiştir",
@@ -63,7 +66,7 @@
     "version": "Sürüm",
     "engine": "Motor",
     "quickActions": "Hızlı işlemler",
-    "addEntry": "Kayıt ekle",
+    "addEntry": "Veriyi düzenle",
     "exportData": "Veriyi dışa aktar",
     "viewData": "Verilere göz at",
     "manageSecurity": "Güvenlik",
@@ -71,7 +74,7 @@
   },
   "data": {
     "title": "Veriler",
-    "subtitle": "Veritabanındaki tüm üst düzey anahtarlar. Değerleri JSON olarak düzenle.",
+    "subtitle": "Tüm veritabanını ham JSON olarak düzenle ya da kart olarak gör.",
     "search": "Anahtar ara…",
     "add": "Kayıt ekle",
     "key": "Anahtar",
@@ -87,7 +90,17 @@
     "editEntry": "Kaydı düzenle",
     "valueJson": "Değer (JSON)",
     "invalidJson": "Değer geçerli bir JSON değil.",
-    "keyRequired": "Anahtar gerekli."
+    "keyRequired": "Anahtar gerekli.",
+    "rawTab": "Ham JSON",
+    "cardsTab": "Kartlar",
+    "format": "Biçimle",
+    "rawHint": "Tüm veritabanını doğrudan düzenle. Üst düzey anahtarlar kayıtların olur.",
+    "rawSaved": "Veritabanı kaydedildi.",
+    "rawInvalid": "Geçersiz JSON — kaydetmeden önce düzelt.",
+    "rawObjectOnly": "Kök bir JSON nesnesi olmalı, örn. { \"anahtar\": değer }.",
+    "saveDb": "Veritabanını kaydet",
+    "unsaved": "Kaydedilmemiş değişiklik",
+    "valid": "Geçerli JSON"
   },
   "transfer": {
     "title": "İçe / Dışa Aktar",
@@ -122,7 +135,7 @@
     "readOnly": "Salt-okunur mod",
     "readOnlyHint": "Verideki tüm değişiklikleri engelle. Ayarlar düzenlenebilir kalır.",
     "allowlist": "IP izin listesi",
-    "allowlistHint": "Her satıra bir IP. Doluyken yalnızca bu IP'ler bağlanabilir. Tümüne izin için boş bırak.",
+    "allowlistHint": "Her satıra bir IP. Doluyken yalnızca bu IP'ler bağlanabilir. Localhost her zaman izinlidir ve kendini kilitlememen için mevcut IP'n otomatik eklenir.",
     "blocklist": "IP engel listesi",
     "blocklistHint": "Her satıra bir IP. Bu IP'ler her zaman reddedilir.",
     "maxAttempts": "Maks. giriş denemesi",
@@ -135,6 +148,30 @@
     "passwordChanged": "Şifre değişti. Lütfen tekrar giriş yap.",
     "configPath": "Yapılandırma dosyası",
     "restartNotice": "Sunucu {host}:{port} adresine yeniden bağlandı.",
-    "saved": "Ayarlar kaydedildi."
+    "saved": "Ayarlar kaydedildi.",
+    "yourIp": "IP adresin",
+    "securityLog": "Erişim ve güvenlik logu",
+    "securityLogDesc": "Son bağlantı denemeleri, girişler ve engellenen istekler.",
+    "logTime": "Zaman",
+    "logType": "Olay",
+    "logIp": "IP",
+    "logDetail": "Detay",
+    "logClient": "İstemci",
+    "logEmpty": "Henüz olay kaydı yok.",
+    "clearLog": "Logu temizle"
+  },
+  "log": {
+    "login_success": "Başarılı giriş",
+    "login_failed": "Başarısız giriş",
+    "login_locked": "Giriş kilitlendi",
+    "setup": "İlk kurulum",
+    "logout": "Çıkış",
+    "password_changed": "Şifre değişti",
+    "ip_blocked": "IP engellendi",
+    "honeypot": "Honeypot tuzağı",
+    "csrf_failed": "CSRF reddedildi",
+    "settings_changed": "Ayar değişti",
+    "data_changed": "Veri değişti",
+    "import": "İçe aktarma"
   }
 }

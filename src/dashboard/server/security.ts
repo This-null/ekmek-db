@@ -1,6 +1,32 @@
 import { IncomingMessage, ServerResponse } from 'http';
 import { SecuritySettings } from './config';
 
+const LOOPBACK = new Set(['127.0.0.1', '::1', 'localhost']);
+
+const HONEYPOT_PATHS = [
+  '/wp-login.php',
+  '/wp-admin',
+  '/wp-content',
+  '/xmlrpc.php',
+  '/.env',
+  '/.git',
+  '/.git/config',
+  '/phpmyadmin',
+  '/pma',
+  '/admin.php',
+  '/administrator',
+  '/.aws',
+  '/.ssh',
+  '/config.php',
+  '/shell',
+  '/vendor/phpunit',
+  '/solr',
+  '/actuator',
+  '/owa',
+  '/.vscode',
+  '/cgi-bin',
+];
+
 export function clientIp(req: IncomingMessage): string {
   let ip = req.socket.remoteAddress || '';
   if (ip.startsWith('::ffff:')) ip = ip.slice(7);
@@ -8,10 +34,20 @@ export function clientIp(req: IncomingMessage): string {
   return ip;
 }
 
+export function isLoopback(ip: string): boolean {
+  return LOOPBACK.has(ip);
+}
+
 export function isIpAllowed(ip: string, security: SecuritySettings): boolean {
+  if (isLoopback(ip)) return true;
   if (security.blocklist.includes(ip)) return false;
   if (security.allowlist.length > 0 && !security.allowlist.includes(ip)) return false;
   return true;
+}
+
+export function isHoneypotPath(pathname: string): boolean {
+  const p = pathname.toLowerCase();
+  return HONEYPOT_PATHS.some((h) => p === h || p.startsWith(h + '/') || p.startsWith(h + '?'));
 }
 
 interface Attempt {

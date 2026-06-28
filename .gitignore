@@ -5,4 +5,6 @@ dist/
 
 # Dashboard runtime files (contain hashed admin password + server secret)
 ekmek-dashboard.config.json
+ekmek-dashboard.log.json
 data/
+.ekmek-smoke-*/
