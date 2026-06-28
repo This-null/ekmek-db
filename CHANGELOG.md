@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.0.7
+
+### Added — Dashboard
+- **Data folder file manager:** the Data tab now reads every `.json` file in your data folder (configurable via the new `dataDir` option, default `./data`) and lets you edit each one **as a whole file** — pick a file on the left, edit its full JSON on the right, save it straight back to disk. Create and delete files from the UI. Each file shows a valid/invalid indicator and size. Path traversal is blocked; saves are atomic.
+- The editor now opens at **full height** by default — no scrolling to grow it; only the editor scrolls internally.
+
+### Fixed
+- **White area on scroll:** the dashboard shell now uses a fixed-height layout where only the content column scrolls, so scrolling a tall page no longer reveals a blank/white strip below the content.
+
+### Changed
+- Motion pass per the design skills: faster, lighter entrances (~280ms, ease-out-expo), live status pulse, removed the toast's side-stripe accent, smoother modal/toast exits. All motion still respects `prefers-reduced-motion`.
+
 ## 0.0.6
 
 ### Fixed

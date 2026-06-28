@@ -172,7 +172,7 @@ A self-contained, login-protected web dashboard to manage your database **live**
 
 ## What you can do
 
-- **Raw JSON editor** — edit the entire database directly in a code editor with line numbers and syntax highlighting, exactly like editing the file by hand. Format, validate, and save the whole thing at once. (Or switch to a card view to edit keys one by one.)
+- **Data folder file manager** — the dashboard reads every `.json` file in your data folder and lets you edit each one **as a whole file** in a full-height code editor with line numbers and syntax highlighting. Pick a file on the left, edit its JSON on the right, and save it straight back to disk. Create and delete files from the UI.
 - **Import / Export** — download a full JSON snapshot, or load a `.json` file (merge or replace).
 - **Settings** — change the port/bind address (re-binds instantly), theme, language, and security — all from the UI.
 - **Security** — IP allowlist / blocklist, read-only mode, login brute-force lockout, CSRF protection, honeypot traps, and an access log of who tried to connect (IP, time, browser).
@@ -227,6 +227,7 @@ await dashboard.start();
 | --- | --- | --- |
 | `port` | `8080` | Port to listen on (use `80` for the default web port; may require admin rights). |
 | `host` | `'0.0.0.0'` | Bind address. `0.0.0.0` exposes it on the LAN; `127.0.0.1` keeps it local-only. |
+| `dataDir` | `./data` | Folder whose `.json` files the file manager reads and edits. |
 | `configPath` | `./ekmek-dashboard.config.json` | Where admin credentials & settings are stored. |
 | `dbName` | `'ekmek-db'` | Display name in the UI. |
 | `quiet` | `false` | Suppress the console banner. |

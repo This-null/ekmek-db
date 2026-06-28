@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import path from 'path';
 import { EkmekDB } from '../core/EkmekDB';
 import { JsonAdapter } from '../adapters/JsonAdapter';
 import { Dashboard } from './Dashboard';
@@ -29,14 +30,14 @@ async function main() {
   }
 
   const args = parseArgs(rest);
-  const db = new EkmekDB(
-    new JsonAdapter({ folder: args.folder || 'data', file: args.file || 'db.json' })
-  );
+  const folder = args.folder || 'data';
+  const db = new EkmekDB(new JsonAdapter({ folder, file: args.file || 'db.json' }));
 
   const dashboard = new Dashboard(db, {
     port: args.port ? Number(args.port) : undefined,
     host: args.host,
     configPath: args.config,
+    dataDir: path.join(process.cwd(), folder),
   });
 
   await dashboard.start();

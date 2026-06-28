@@ -45,6 +45,11 @@
     importData: (data, mode) => request('POST', '/api/import', { data, mode }),
     securityLog: () => request('GET', '/api/security/log'),
     clearLog: () => request('POST', '/api/security/log/clear'),
+    listFiles: () => request('GET', '/api/files'),
+    readFile: (name) => request('GET', '/api/files/read?name=' + encodeURIComponent(name)),
+    saveFile: (name, content) => request('POST', '/api/files/save', { name, content }),
+    createFile: (name) => request('POST', '/api/files/create', { name }),
+    deleteFile: (name) => request('POST', '/api/files/delete', { name }),
     exportUrl: () => '/api/export',
   };
 })();

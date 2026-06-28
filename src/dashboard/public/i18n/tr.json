@@ -102,6 +102,28 @@
     "unsaved": "Kaydedilmemiş değişiklik",
     "valid": "Geçerli JSON"
   },
+  "files": {
+    "title": "Dosyalar",
+    "subtitle": "Data klasöründeki tüm JSON dosyaları. Birini seç, dosyayı bütün olarak düzenle.",
+    "newFile": "Yeni dosya",
+    "newFilePrompt": "Dosya adı (örn. quiz.json)",
+    "empty": "Bu klasörde henüz JSON dosyası yok.",
+    "emptyHint": "Başlamak için bir tane oluştur.",
+    "pickFile": "Düzenlemek için soldan bir dosya seç.",
+    "deleteConfirm": "\"{name}\" silinsin mi? Bu, dosyayı diskten kaldırır.",
+    "saved": "{name} kaydedildi.",
+    "created": "{name} oluşturuldu.",
+    "exists": "Bu adda bir dosya zaten var.",
+    "invalidName": "Harf, rakam, . _ - kullan ve .json ile bitir",
+    "invalidJson": "Geçersiz JSON — kaydetmeden önce düzelt.",
+    "save": "Dosyayı kaydet",
+    "format": "Biçimle",
+    "deleteFile": "Dosyayı sil",
+    "unsaved": "Kaydedilmemiş değişiklik",
+    "valid": "Geçerli JSON",
+    "modified": "Değiştirilme",
+    "reload": "Diskten yeniden yükle"
+  },
   "transfer": {
     "title": "İçe / Dışa Aktar",
     "subtitle": "Veri kümeni JSON olarak içeri al veya dışarı çıkar.",
