@@ -101,7 +101,10 @@ export function applySecurityHeaders(res: ServerResponse): void {
     'Content-Security-Policy',
     [
       "default-src 'self'",
-      "script-src 'self' https://cdn.tailwindcss.com 'unsafe-inline' 'unsafe-eval'",
+      "script-src 'self'",
+      "base-uri 'none'",
+      "form-action 'self'",
+      "object-src 'none'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data:",

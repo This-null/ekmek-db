@@ -50,6 +50,12 @@
     saveFile: (name, content) => request('POST', '/api/files/save', { name, content }),
     createFile: (name) => request('POST', '/api/files/create', { name }),
     deleteFile: (name) => request('POST', '/api/files/delete', { name }),
+    renameFile: (from, to) => request('POST', '/api/files/rename', { from, to }),
+    duplicateFile: (name) => request('POST', '/api/files/duplicate', { name }),
+    downloadFileUrl: (name) => '/api/files/download?name=' + encodeURIComponent(name),
+    searchFiles: (q) => request('GET', '/api/files/search?q=' + encodeURIComponent(q)),
+    backups: (name) => request('GET', '/api/files/backups?name=' + encodeURIComponent(name)),
+    restoreBackup: (name, stamp) => request('POST', '/api/files/restore', { name, stamp }),
     exportUrl: () => '/api/export',
   };
 })();

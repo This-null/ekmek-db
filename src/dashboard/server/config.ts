@@ -3,6 +3,9 @@ import fsp from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
 
+export const SUPPORTED_LANGUAGES = ['en', 'tr', 'ru', 'de', 'az', 'fr', 'zh', 'ja'] as const;
+export type Language = (typeof SUPPORTED_LANGUAGES)[number];
+
 export interface AdminUser {
   username: string;
   salt: string;
@@ -25,7 +28,7 @@ export interface DashboardConfig {
   port: number;
   host: string;
   theme: 'dark' | 'light';
-  language: 'en' | 'tr';
+  language: Language;
   security: SecuritySettings;
   secret: string;
 }

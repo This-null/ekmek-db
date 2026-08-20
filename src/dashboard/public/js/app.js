@@ -38,6 +38,12 @@
     refresh: '<svg viewBox="0 0 24 24" class="ico"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>',
     save: '<svg viewBox="0 0 24 24" class="ico"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>',
     file: '<svg viewBox="0 0 24 24" class="ico"><path d="M14 3v5h5"/><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-5Z"/></svg>',
+    upload: '<svg viewBox="0 0 24 24" class="ico"><path d="M12 21V9m0 0 4 4m-4-4-4 4"/><path d="M5 3h14"/></svg>',
+    back: '<svg viewBox="0 0 24 24" class="ico"><path d="m15 18-6-6 6-6"/></svg>',
+    more: '<svg viewBox="0 0 24 24" class="ico"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>',
+    copy: '<svg viewBox="0 0 24 24" class="ico"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+    rename: '<svg viewBox="0 0 24 24" class="ico"><path d="M4 7V5h16v2M9 20h6M12 5v15"/></svg>',
+    history: '<svg viewBox="0 0 24 24" class="ico"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 8v4l3 2"/></svg>',
   };
 
   function toast(message, type = 'success') {
@@ -99,16 +105,36 @@
     applyTheme(next);
     if (state.user) { try { await Api.updateSettings({ theme: next }); } catch (e) {} }
   }
-  async function toggleLang() {
-    const next = I18n.lang === 'en' ? 'tr' : 'en';
-    await setLang(next);
-    $$('[data-lang-flag]').forEach((e) => (e.textContent = next.toUpperCase()));
+  const LANGS = [
+    { code: 'en', label: 'English', native: 'English' },
+    { code: 'tr', label: 'Turkish', native: 'Türkçe' },
+    { code: 'ru', label: 'Russian', native: 'Русский' },
+    { code: 'de', label: 'German', native: 'Deutsch' },
+    { code: 'az', label: 'Azerbaijani', native: 'Azərbaycan' },
+    { code: 'fr', label: 'French', native: 'Français' },
+    { code: 'zh', label: 'Chinese', native: '中文' },
+    { code: 'ja', label: 'Japanese', native: '日本語' },
+  ];
+
+  async function applyLang(code) {
+    await setLang(code);
+    $$('[data-lang-flag]').forEach((e) => (e.textContent = code.toUpperCase()));
     if (state.user) {
-      try { await Api.updateSettings({ language: next }); } catch (e) {}
+      try { await Api.updateSettings({ language: code }); } catch (e) {}
       route();
     } else {
       renderAuth();
     }
+  }
+
+  function openLangPicker() {
+    const body = node('<div class="menu-sheet"></div>');
+    body.innerHTML = LANGS.map((l) => `<button class="menu-item ${l.code === I18n.lang ? 'on' : ''}" data-l="${l.code}"><span class="lang-code">${esc(l.code.toUpperCase())}</span><span>${esc(l.native)}</span></button>`).join('');
+    const close = openModal({ title: t('settings.language'), body });
+    $$('[data-l]', body).forEach((b) => b.onclick = async () => {
+      close();
+      await applyLang(b.getAttribute('data-l'));
+    });
   }
 
   async function boot() {
@@ -125,10 +151,49 @@
 
   function bindChrome() {
     $$('[data-toggle-theme]').forEach((b) => b.addEventListener('click', toggleTheme));
-    $$('[data-toggle-lang]').forEach((b) => b.addEventListener('click', toggleLang));
-    $('[data-menu]')?.addEventListener('click', () => $('.sidebar').classList.toggle('open'));
-    $('[data-logout]')?.addEventListener('click', async () => { try { await Api.logout(); } catch (e) {} location.reload(); });
-    $$('.nav-item[data-route]').forEach((a) => a.addEventListener('click', () => $('.sidebar').classList.remove('open')));
+    $$('[data-toggle-lang]').forEach((b) => b.addEventListener('click', openLangPicker));
+    const scrim = $('[data-scrim]');
+    const sidebar = $('.sidebar');
+    const openDrawer = (on) => {
+      if (!sidebar || !scrim) return;
+      sidebar.classList.toggle('open', on);
+      if (on) { scrim.hidden = false; requestAnimationFrame(() => scrim.classList.add('show')); }
+      else { scrim.classList.remove('show'); setTimeout(() => { scrim.hidden = true; }, 220); }
+    };
+    const menuBtn = $('[data-menu]');
+    if (menuBtn) menuBtn.addEventListener('click', () => openDrawer(!sidebar.classList.contains('open')));
+    if (scrim) scrim.addEventListener('click', () => openDrawer(false));
+    const logoutBtn = $('[data-logout]');
+    if (logoutBtn) logoutBtn.addEventListener('click', async () => { try { await Api.logout(); } catch (e) {} location.reload(); });
+    $$('.nav-item[data-route]').forEach((a) => a.addEventListener('click', () => openDrawer(false)));
+    const searchBtn = $('[data-cmd-search]');
+    if (searchBtn) searchBtn.addEventListener('click', () => { if (state.user) openSearchPalette(); });
+
+    document.addEventListener('keydown', (e) => {
+      if (!state.user) return;
+      const meta = e.ctrlKey || e.metaKey;
+      if (meta && (e.key === 's' || e.key === 'S')) {
+        if (state.saveCurrent && location.hash === '#data') { e.preventDefault(); state.saveCurrent(); }
+      } else if (meta && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault(); openSearchPalette();
+      } else if (e.key === 'Escape') {
+        openDrawer(false);
+      }
+    });
+
+    window.addEventListener('beforeunload', (e) => {
+      if (state.dirty) { e.preventDefault(); e.returnValue = ''; }
+    });
+
+    const vv = window.visualViewport;
+    if (vv) {
+      const applyVv = () => {
+        document.documentElement.style.setProperty('--vvh', vv.height + 'px');
+      };
+      vv.addEventListener('resize', applyVv);
+      applyVv();
+    }
+
     window.addEventListener('hashchange', route);
   }
 
@@ -185,6 +250,8 @@
     $('#app').classList.remove('hidden');
     applyI18n($('#app'));
     $('[data-user]').textContent = state.user.username;
+    $('[data-avatar]').textContent = (state.user.username || '?').trim().charAt(0);
+    $('[data-user-status]').textContent = t('overview.online');
     if (!location.hash) location.hash = '#overview';
     route();
   }
@@ -286,26 +353,36 @@
     );
   }
 
-  function createCodeEditor(initial, onState) {
-    const wrap = node(`
+  function isTouch() {
+    return window.matchMedia('(pointer: coarse)').matches;
+  }
+
+  function createCodeEditor(initial, opts) {
+    opts = opts || {};
+    const onState = opts.onState;
+    const el = node(`
       <div class="code-editor">
         <div class="code-gutter" data-gutter></div>
         <div class="code-scroll">
           <pre class="code-highlight" data-hl aria-hidden="true"><code></code></pre>
-          <textarea class="code-input" data-input spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+          <textarea class="code-input" data-input spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off"></textarea>
         </div>
       </div>`);
-    const gutter = $('[data-gutter]', wrap);
-    const hl = $('[data-hl] code', wrap);
-    const ta = $('[data-input]', wrap);
+    const gutter = $('[data-gutter]', el);
+    const hl = $('[data-hl] code', el);
+    const ta = $('[data-input]', el);
     ta.value = initial;
+
+    let wrapped = false;
 
     const renderHl = () => {
       hl.innerHTML = highlightJson(ta.value) + '\n';
-      const lines = ta.value.split('\n').length;
-      let g = '';
-      for (let i = 1; i <= lines; i++) g += i + '\n';
-      gutter.textContent = g;
+      if (!wrapped) {
+        const lines = ta.value.split('\n').length;
+        let g = '';
+        for (let i = 1; i <= lines; i++) g += i + '\n';
+        gutter.textContent = g;
+      }
     };
     const validate = () => {
       let ok = true;
@@ -313,29 +390,90 @@
       onState && onState({ valid: ok });
       return ok;
     };
-    const sync = () => { hl.parentElement.scrollTop = ta.scrollTop; hl.parentElement.scrollLeft = ta.scrollLeft; gutter.scrollTop = ta.scrollTop; };
+    const sync = () => {
+      const box = hl.parentElement;
+      box.scrollTop = ta.scrollTop;
+      box.scrollLeft = ta.scrollLeft;
+      gutter.scrollTop = ta.scrollTop;
+    };
 
     ta.addEventListener('input', () => { renderHl(); validate(); onState && onState({ dirty: true }); });
     ta.addEventListener('scroll', sync);
     ta.addEventListener('keydown', (e) => {
+      const meta = e.ctrlKey || e.metaKey;
+      if (meta && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+        opts.onSave && opts.onSave();
+        return;
+      }
       if (e.key === 'Tab') {
         e.preventDefault();
-        const s = ta.selectionStart, en = ta.selectionEnd;
-        ta.value = ta.value.slice(0, s) + '  ' + ta.value.slice(en);
-        ta.selectionStart = ta.selectionEnd = s + 2;
+        let inserted = false;
+        try { inserted = document.execCommand('insertText', false, '  '); } catch (err) { inserted = false; }
+        if (!inserted) {
+          const s = ta.selectionStart, en = ta.selectionEnd;
+          ta.value = ta.value.slice(0, s) + '  ' + ta.value.slice(en);
+          ta.selectionStart = ta.selectionEnd = s + 2;
+        }
         renderHl();
+        onState && onState({ dirty: true });
       }
     });
 
+    const setWrap = (on) => {
+      wrapped = Boolean(on);
+      el.classList.toggle('wrap', wrapped);
+      ta.setAttribute('wrap', wrapped ? 'soft' : 'off');
+      if (!wrapped) renderHl();
+      sync();
+    };
+
     renderHl();
     return {
-      el: wrap,
+      el,
       getValue: () => ta.value,
       setValue: (v) => { ta.value = v; renderHl(); validate(); },
       validate,
       focus: () => ta.focus(),
+      setWrap,
+      isWrapped: () => wrapped,
+      stats: () => ({ lines: ta.value.split('\n').length, chars: ta.value.length }),
       input: ta,
     };
+  }
+
+  function mountEditor(host, content, cfg) {
+    cfg = cfg || {};
+    const bar = node(`
+      <div class="editor-hint">
+        <span data-stats></span>
+        <button class="wrap-toggle" data-wrap type="button">${esc(t('files.wrap'))}</button>
+      </div>`);
+    const editor = createCodeEditor(content, {
+      onState: (st) => { cfg.onState && cfg.onState(st); refreshStats(); },
+      onSave: () => cfg.onSave && cfg.onSave(),
+    });
+    const statsEl = $('[data-stats]', bar);
+    function refreshStats() {
+      const s = editor.stats();
+      statsEl.textContent = t('files.stats', { lines: s.lines, chars: s.chars });
+    }
+    const wrapBtn = $('[data-wrap]', bar);
+    const applyWrap = (on) => {
+      editor.setWrap(on);
+      wrapBtn.classList.toggle('on', on);
+      try { localStorage.setItem('ekmek.wrap', on ? '1' : '0'); } catch (e) {}
+    };
+    wrapBtn.addEventListener('click', () => applyWrap(!editor.isWrapped()));
+
+    host.innerHTML = '';
+    host.append(bar, editor.el);
+    let stored = null;
+    try { stored = localStorage.getItem('ekmek.wrap'); } catch (e) {}
+    applyWrap(stored === null ? isTouch() : stored === '1');
+    refreshStats();
+    if (cfg.readOnly) editor.input.setAttribute('readonly', 'readonly');
+    return editor;
   }
 
   async function renderData() {
@@ -343,17 +481,23 @@
     view.innerHTML = `<div class="empty">${t('common.loading')}</div>`;
     const readOnly = state.user.readOnly;
     const { files, dir } = await Api.listFiles();
+    state.files = files;
 
     view.innerHTML = `
-      <div class="files-shell anim-in">
+      <div class="files-shell anim-in" data-shell data-view="list">
         <aside class="file-list">
           <div class="file-list-head">
             <div class="fl-titles">
               <h2>${esc(t('files.title'))}</h2>
               <p class="dir mono" title="${esc(dir)}">${esc(dir)}</p>
             </div>
-            ${readOnly ? '' : `<button class="icon-btn" data-newfile title="${esc(t('files.newFile'))}">${ICON.plus}</button>`}
+            <div class="fl-head-actions">
+              <button class="icon-btn" data-search title="${esc(t('files.searchAll'))}">${ICON.search}</button>
+              ${readOnly ? '' : `<button class="icon-btn" data-newfile title="${esc(t('files.newFile'))}">${ICON.plus}</button>`}
+            </div>
           </div>
+          <div class="fl-filter"><input data-filter placeholder="${esc(t('files.filter'))}" /></div>
+          <input type="file" accept="application/json,.json" multiple hidden data-upload />
           <div class="file-items" data-files></div>
         </aside>
         <section class="file-pane" data-pane>
@@ -361,10 +505,15 @@
         </section>
       </div>`;
 
+    const shell = $('[data-shell]', view);
     const listHost = $('[data-files]', view);
+    let filterText = '';
+
     const renderList = () => {
       if (!files.length) { listHost.innerHTML = `<div class="fl-empty">${esc(t('files.emptyHint'))}</div>`; return; }
-      listHost.innerHTML = files.map((f) => `
+      const rows = files.filter((f) => f.name.toLowerCase().includes(filterText));
+      if (!rows.length) { listHost.innerHTML = `<div class="fl-empty">${esc(t('data.emptySearch'))}</div>`; return; }
+      listHost.innerHTML = rows.map((f) => `
         <button class="file-item ${state.currentFile === f.name ? 'active' : ''}" data-file="${esc(f.name)}">
           <span class="fi-dot ${f.valid ? 'ok' : 'bad'}"></span>
           <span class="fi-name">${esc(f.name)}</span>
@@ -374,30 +523,102 @@
     };
     renderList();
 
-    const newFile = async () => {
+    $('[data-filter]', view).addEventListener('input', (e) => {
+      filterText = e.target.value.trim().toLowerCase();
+      renderList();
+    });
+
+    const createEmpty = async () => {
       const name = await promptDialog(t('files.newFile'), t('files.newFilePrompt'));
       if (!name) return;
       try {
         const res = await Api.createFile(name);
         toast(t('files.created', { name: res.name }));
+        state.currentFile = res.name;
         renderData();
       } catch (ex) {
         toast(ex.code === 'exists' ? t('files.exists') : t('files.invalidName'), 'error');
       }
     };
-    $('[data-newfile]', view)?.addEventListener('click', newFile);
-    $('[data-newfile2]', view)?.addEventListener('click', newFile);
+
+    const sanitizeName = (raw) => {
+      let n = String(raw || '').split('/').pop().split(String.fromCharCode(92)).pop().trim();
+      n = n.replace(/[^A-Za-z0-9 _.()-]/g, '-');
+      if (!/.json$/i.test(n)) n += '.json';
+      return n;
+    };
+
+    const uploadFiles = async (fileList) => {
+      const picked = Array.from(fileList || []);
+      if (!picked.length) return;
+      let count = 0;
+      let last = null;
+      for (const f of picked) {
+        const name = sanitizeName(f.name);
+        let text;
+        try { text = await f.text(); JSON.parse(text); }
+        catch (err) { toast(t('files.badUpload', { name }), 'error'); continue; }
+        const clash = files.some((x) => x.name.toLowerCase() === name.toLowerCase());
+        if (clash && !(await confirmDialog(t('files.overwriteConfirm', { name })))) continue;
+        try {
+          if (!clash) await Api.createFile(name);
+          await Api.saveFile(name, text);
+          count += 1;
+          last = name;
+        } catch (ex) { toast(t('common.error'), 'error'); }
+      }
+      if (count) {
+        toast(t('files.uploaded', { count }));
+        if (last) state.currentFile = last;
+        renderData();
+      }
+    };
+
+    const newFile = () => {
+      const body = node('<div class="menu-sheet"></div>');
+      body.innerHTML = [
+        `<button class="menu-item" data-a="empty">${ICON.file}<span>${esc(t('files.newEmpty'))}</span></button>`,
+        `<button class="menu-item" data-a="upload">${ICON.upload}<span>${esc(t('files.upload'))}</span></button>`,
+      ].join('');
+      const close = openModal({ title: t('files.addFile'), body });
+      $('[data-a="empty"]', body).onclick = () => { close(); createEmpty(); };
+      $('[data-a="upload"]', body).onclick = () => { close(); $('[data-upload]', view).click(); };
+    };
+    const nf = $('[data-newfile]', view);
+    if (nf) nf.addEventListener('click', newFile);
+    const nf2 = $('[data-newfile2]', view);
+    if (nf2) nf2.addEventListener('click', newFile);
+    $('[data-search]', view).addEventListener('click', () => openSearchPalette());
+
+    const uploadInput = $('[data-upload]', view);
+    uploadInput.addEventListener('change', async () => {
+      await uploadFiles(uploadInput.files);
+      uploadInput.value = '';
+    });
+
+    if (!readOnly) {
+      const dropZone = $('.file-list', view);
+      ['dragenter', 'dragover'].forEach((ev) => dropZone.addEventListener(ev, (e) => { e.preventDefault(); dropZone.classList.add('drop-over'); }));
+      ['dragleave', 'drop'].forEach((ev) => dropZone.addEventListener(ev, (e) => { e.preventDefault(); dropZone.classList.remove('drop-over'); }));
+      dropZone.addEventListener('drop', (e) => uploadFiles(e.dataTransfer.files));
+    }
+
+    window.__ekmekOpenFile = openFile;
 
     if (state.currentFile && files.find((f) => f.name === state.currentFile)) {
       openFile(state.currentFile);
     }
 
+    async function guardDirty() {
+      if (!state.dirty) return true;
+      return confirmDialog(t('files.discardConfirm'));
+    }
+
     async function openFile(name) {
-      if (state.dirty && name !== state.currentFile) {
-        if (!(await confirmDialog(t('files.unsaved') + ' — ' + t('common.confirm') + '?'))) return;
-      }
+      if (name !== state.currentFile && !(await guardDirty())) return;
       state.currentFile = name;
       state.dirty = false;
+      shell.dataset.view = 'editor';
       $$('[data-file]', listHost).forEach((b) => b.classList.toggle('active', b.getAttribute('data-file') === name));
       const pane = $('[data-pane]', view);
       pane.innerHTML = `<div class="empty">${t('common.loading')}</div>`;
@@ -405,13 +626,12 @@
 
       pane.innerHTML = `
         <div class="pane-head">
+          <button class="pane-back" data-back title="${esc(t('common.back'))}">${ICON.back}</button>
           <div class="pane-title">${ICON.file}<strong>${esc(name)}</strong></div>
           <div class="pane-actions">
             <span class="status-chip ok" data-status>${esc(t('files.valid'))}</span>
-            <button class="icon-btn" data-reload title="${esc(t('files.reload'))}">${ICON.refresh}</button>
-            <button class="btn btn-ghost" data-format>${esc(t('files.format'))}</button>
+            <button class="icon-btn" data-more title="${esc(t('common.more'))}">${ICON.more}</button>
             ${readOnly ? '' : `<button class="btn btn-primary" data-save>${ICON.save}<span>${esc(t('files.save'))}</span></button>`}
-            ${readOnly ? '' : `<button class="icon-btn danger" data-delete title="${esc(t('files.deleteFile'))}">${ICON.trash}</button>`}
           </div>
         </div>
         <div class="pane-editor" data-host></div>`;
@@ -422,41 +642,162 @@
         else if (st.dirty) { status.className = 'status-chip warn'; status.textContent = t('files.unsaved'); state.dirty = true; }
         else { status.className = 'status-chip ok'; status.textContent = t('files.valid'); }
       };
-      const editor = createCodeEditor(content, setStatus);
-      if (readOnly) editor.input.setAttribute('readonly', 'readonly');
-      $('[data-host]', pane).appendChild(editor.el);
 
-      $('[data-reload]', pane).onclick = async () => {
-        const fresh = await Api.readFile(name);
-        editor.setValue(fresh.content);
-        state.dirty = false; setStatus({ valid: true });
-      };
-      $('[data-format]', pane).onclick = () => {
-        try { editor.setValue(JSON.stringify(JSON.parse(editor.getValue()), null, 2)); setStatus({ dirty: true }); }
-        catch { toast(t('files.invalidJson'), 'error'); }
-      };
-      const saveBtn = $('[data-save]', pane);
-      if (saveBtn) saveBtn.onclick = async () => {
+      const save = async () => {
+        if (readOnly) return;
         if (!editor.validate()) { toast(t('files.invalidJson'), 'error'); setStatus({ valid: false }); return; }
         try {
           await Api.saveFile(name, editor.getValue());
-          state.dirty = false; setStatus({ valid: true });
+          state.dirty = false;
+          setStatus({ valid: true });
           toast(t('files.saved', { name }));
           const idx = files.findIndex((f) => f.name === name);
           if (idx >= 0) files[idx].size = new Blob([editor.getValue()]).size;
           renderList();
-        } catch (ex) { toast(ex.code === 'invalid_json' ? t('files.invalidJson') : t('common.error'), 'error'); }
+        } catch (ex) {
+          toast(ex.code === 'invalid_json' ? t('files.invalidJson') : t('common.error'), 'error');
+        }
       };
-      const delBtn = $('[data-delete]', pane);
-      if (delBtn) delBtn.onclick = async () => {
-        if (!(await confirmDialog(t('files.deleteConfirm', { name })))) return;
-        await Api.deleteFile(name);
-        state.currentFile = null; state.dirty = false;
-        toast(t('common.saved'));
-        renderData();
+
+      const editor = mountEditor($('[data-host]', pane), content, { readOnly, onState: setStatus, onSave: save });
+      state.saveCurrent = save;
+
+      $('[data-back]', pane).onclick = async () => {
+        if (!(await guardDirty())) return;
+        state.dirty = false;
+        shell.dataset.view = 'list';
       };
+      const saveBtn = $('[data-save]', pane);
+      if (saveBtn) saveBtn.onclick = save;
+      $('[data-more]', pane).onclick = () => openFileMenu(name, editor);
+    }
+
+    function openFileMenu(name, editor) {
+      const body = node('<div class="menu-sheet"></div>');
+      const items = [
+        { k: 'format', icon: ICON.edit, label: t('files.format'), hide: readOnly },
+        { k: 'reload', icon: ICON.refresh, label: t('files.reload') },
+        { k: 'download', icon: ICON.download, label: t('files.download') },
+        { k: 'backups', icon: ICON.history, label: t('files.backups') },
+        { k: 'rename', icon: ICON.rename, label: t('files.rename'), hide: readOnly },
+        { k: 'duplicate', icon: ICON.copy, label: t('files.duplicate'), hide: readOnly },
+        { k: 'delete', icon: ICON.trash, label: t('files.deleteFile'), danger: true, hide: readOnly },
+      ].filter((i) => !i.hide);
+      body.innerHTML = items.map((i) => `<button class="menu-item ${i.danger ? 'danger' : ''}" data-k="${i.k}">${i.icon}<span>${esc(i.label)}</span></button>`).join('');
+      const close = openModal({ title: name, body });
+
+      $$('[data-k]', body).forEach((b) => b.onclick = async () => {
+        const k = b.getAttribute('data-k');
+        close();
+        if (k === 'format') {
+          try {
+            editor.setValue(JSON.stringify(JSON.parse(editor.getValue()), null, 2));
+            state.dirty = true;
+            toast(t('files.formatted'));
+          } catch (err) { toast(t('files.invalidJson'), 'error'); }
+        } else if (k === 'reload') {
+          const fresh = await Api.readFile(name);
+          editor.setValue(fresh.content);
+          state.dirty = false;
+          toast(t('files.reloaded'));
+        } else if (k === 'download') {
+          const a = document.createElement('a');
+          a.href = Api.downloadFileUrl(name);
+          a.download = name;
+          document.body.appendChild(a); a.click(); a.remove();
+        } else if (k === 'backups') {
+          openBackups(name, editor);
+        } else if (k === 'rename') {
+          const to = await promptDialog(t('files.rename'), name);
+          if (!to || to === name) return;
+          try {
+            const res = await Api.renameFile(name, to);
+            state.currentFile = res.name;
+            state.dirty = false;
+            toast(t('files.renamed', { name: res.name }));
+            renderData();
+          } catch (ex) { toast(ex.code === 'exists' ? t('files.exists') : t('files.invalidName'), 'error'); }
+        } else if (k === 'duplicate') {
+          try {
+            const res = await Api.duplicateFile(name);
+            state.currentFile = res.name;
+            state.dirty = false;
+            toast(t('files.created', { name: res.name }));
+            renderData();
+          } catch (ex) { toast(t('common.error'), 'error'); }
+        } else if (k === 'delete') {
+          if (!(await confirmDialog(t('files.deleteConfirm', { name })))) return;
+          await Api.deleteFile(name);
+          state.currentFile = null;
+          state.dirty = false;
+          toast(t('common.saved'));
+          renderData();
+        }
+      });
+    }
+
+    async function openBackups(name, editor) {
+      const body = node(`<div><p class="hint" style="margin:0 0 .7rem">${esc(t('files.backupsHint'))}</p><div class="cmd-list" data-list>${esc(t('common.loading'))}</div></div>`);
+      const close = openModal({ title: t('files.backups'), body });
+      const host = $('[data-list]', body);
+      const { backups } = await Api.backups(name);
+      if (!backups.length) { host.innerHTML = `<p class="hint">${esc(t('files.noBackups'))}</p>`; return; }
+      host.innerHTML = backups.map((b) => `
+        <div class="bk-row">
+          <div><div class="bk-time">${esc(formatTime(b.created))}</div><div class="bk-size">${esc(formatSize(b.size))}</div></div>
+          <button class="btn btn-ghost" data-stamp="${esc(b.stamp)}">${esc(t('files.restore'))}</button>
+        </div>`).join('');
+      $$('[data-stamp]', host).forEach((b) => b.onclick = async () => {
+        if (!(await confirmDialog(t('files.restoreConfirm')))) return;
+        try {
+          const res = await Api.restoreBackup(name, b.getAttribute('data-stamp'));
+          editor.setValue(res.content);
+          state.dirty = false;
+          close();
+          toast(t('files.restored'));
+        } catch (ex) { toast(t('common.error'), 'error'); }
+      });
     }
   }
+
+  function openSearchPalette() {
+    const body = node(`
+      <div>
+        <label class="field"><input data-q placeholder="${esc(t('files.searchPrompt'))}" /></label>
+        <div class="cmd-list" data-hits></div>
+      </div>`);
+    const close = openModal({ title: t('files.searchAll'), body });
+    const input = $('[data-q]', body);
+    const host = $('[data-hits]', body);
+    let timer = null;
+
+    const run = async () => {
+      const q = input.value.trim();
+      if (q.length < 2) { host.innerHTML = `<p class="hint">${esc(t('files.searchHint'))}</p>`; return; }
+      host.innerHTML = `<p class="hint">${esc(t('common.loading'))}</p>`;
+      try {
+        const { hits } = await Api.searchFiles(q);
+        if (!hits.length) { host.innerHTML = `<p class="hint">${esc(t('files.noHits'))}</p>`; return; }
+        host.innerHTML = hits.map((h) => `
+          <button class="cmd-hit" data-name="${esc(h.name)}">
+            <span class="ch-name">${esc(h.name)} : ${h.line}</span>
+            <span class="ch-text">${esc(h.text)}</span>
+          </button>`).join('');
+        $$('[data-name]', host).forEach((b) => b.onclick = () => {
+          const target = b.getAttribute('data-name');
+          close();
+          state.currentFile = target;
+          if (location.hash !== '#data') location.hash = '#data';
+          else if (window.__ekmekOpenFile) window.__ekmekOpenFile(target);
+        });
+      } catch (ex) { host.innerHTML = `<p class="hint">${esc(t('common.error'))}</p>`; }
+    };
+
+    input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(run, 220); });
+    run();
+    setTimeout(() => input.focus(), 60);
+  }
+
 
   function downloadExport() {
     const a = document.createElement('a');
@@ -570,10 +911,9 @@
           <h3>${esc(t('settings.appearance'))}</h3>
           <p class="set-desc">${esc(t('app.tagline'))}</p>
           <div class="set-row"><span class="lbl">${esc(t('settings.language'))}</span>
-            <div class="seg" data-lang>
-              <button data-l="en" class="${cfg.language === 'en' ? 'active' : ''}">English</button>
-              <button data-l="tr" class="${cfg.language === 'tr' ? 'active' : ''}">Türkçe</button>
-            </div>
+            <select class="input lang-select" data-lang>
+              ${LANGS.map((l) => `<option value="${l.code}" ${cfg.language === l.code ? 'selected' : ''}>${esc(l.native)} (${esc(l.code.toUpperCase())})</option>`).join('')}
+            </select>
           </div>
           <div class="set-row"><span class="lbl">${esc(t('settings.theme'))}</span>
             <div class="seg" data-theme-seg>
@@ -631,7 +971,7 @@
         </div>
       </div>`;
 
-    $$('[data-lang] button', view).forEach((b) => b.onclick = () => toggleLangTo(b.getAttribute('data-l')));
+    $('[data-lang]', view).addEventListener('change', (e) => applyLang(e.target.value));
     $$('[data-theme-seg] button', view).forEach((b) => b.onclick = async () => {
       applyTheme(b.getAttribute('data-th'));
       $$('[data-theme-seg] button', view).forEach((x) => x.classList.toggle('active', x === b));
@@ -702,12 +1042,6 @@
     loadLog();
   }
 
-  async function toggleLangTo(lang) {
-    await setLang(lang);
-    $$('[data-lang-flag]').forEach((e) => (e.textContent = lang.toUpperCase()));
-    if (state.user) { try { await Api.updateSettings({ language: lang }); } catch (e) {} }
-    route();
-  }
 
   boot().catch((e) => {
     document.body.innerHTML = `<div style="min-height:100dvh;display:grid;place-items:center;color:#888;font-family:monospace">${esc(e.message || 'Failed to start')}</div>`;

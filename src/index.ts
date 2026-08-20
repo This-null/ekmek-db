@@ -1,4 +1,4 @@
-export { EkmekDB } from './core/EkmekDB';
+export { EkmekDB, Namespace } from './core/EkmekDB';
 export type { EkmekDBEventMap } from './core/EkmekDB';
 export { BaseAdapter } from './adapters/BaseAdapter';
 export { FileAdapter } from './adapters/FileAdapter';
