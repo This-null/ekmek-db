@@ -2,32 +2,19 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#171316" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#eef6f4" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="color-scheme" content="dark light" />
   <title>ekmek-db · dashboard</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: ['selector', '[data-theme="dark"]'],
-      theme: {
-        extend: {
-          colors: { onyx: '#020202', carbon: '#171717', candy: '#B2D5E5', lime: '#C6FF34' },
-          fontFamily: {
-            display: ['"Space Grotesk"', 'ui-sans-serif', 'sans-serif'],
-            sans: ['Inter', 'ui-sans-serif', 'sans-serif'],
-            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
-          },
-        },
-      },
-    };
-  </script>
   <link rel="stylesheet" href="/css/styles.css" />
 </head>
-<body class="font-sans antialiased">
+<body>
   <div class="backdrop" aria-hidden="true"></div>
 
   <main id="auth-screen" class="auth hidden">
@@ -80,11 +67,12 @@
     </div>
     <div class="auth-foot">
       <button class="ghost-pill" data-toggle-theme aria-label="theme"></button>
-      <button class="ghost-pill" data-toggle-lang>EN · TR</button>
+      <button class="ghost-pill" data-toggle-lang aria-label="language"><span data-lang-flag>EN</span></button>
     </div>
   </main>
 
   <div id="app" class="app hidden">
+    <div class="scrim" data-scrim hidden></div>
     <aside class="sidebar">
       <div class="side-brand">
         <span class="loaf">🍞</span>
@@ -116,18 +104,16 @@
       </nav>
 
       <div class="side-foot">
-        <div class="who">
-          <span class="dot"></span>
-          <div>
-            <small data-i18n="common.signedInAs"></small>
+        <div class="user-card">
+          <span class="avatar" data-avatar>?</span>
+          <div class="user-meta">
             <p data-user>—</p>
+            <small><span class="live-dot"></span><span data-user-status></span></small>
           </div>
-        </div>
-        <button class="nav-item logout" data-logout>
-          <svg viewBox="0 0 24 24" class="ico"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
-          <span data-i18n="nav.logout">Sign out</span>
-        </button>
-      </div>
+          <button class="icon-btn user-out" data-logout aria-label="sign out">
+            <svg viewBox="0 0 24 24" class="ico"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+          </button>
+        </div>      </div>
     </aside>
 
     <div class="main">
@@ -141,7 +127,8 @@
           <span data-crumb>—</span>
         </div>
         <div class="topbar-actions">
-          <button class="icon-btn" data-toggle-lang title="EN · TR"><span class="lang-flag" data-lang-flag>EN</span></button>
+          <button class="icon-btn" data-cmd-search title="Search" aria-label="search"><svg viewBox="0 0 24 24" class="ico"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
+          <button class="icon-btn" data-toggle-lang title="Language"><span class="lang-flag" data-lang-flag>EN</span></button>
           <button class="icon-btn" data-toggle-theme aria-label="theme"></button>
         </div>
       </header>

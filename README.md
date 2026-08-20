@@ -7,18 +7,20 @@
 ![Discord](https://img.shields.io/discord/1321974421937721364?label=Discord&logo=discord&style=for-the-badge&color=7289da)
 ![License](https://img.shields.io/npm/l/ekmek-db?style=for-the-badge)
 
-A modern, robust, type-safe, and lightweight database wrapper for Node.js.
+A modern, robust, type-safe, and lightweight database wrapper for Node.js — with a built-in web dashboard.
 
 ## Features
 
-- **Type-Safe:** Built with TypeScript for full autocompletion and type safety.
-- **Multiple Adapters:** Seamlessly switch between JSON, YAML, MongoDB, and Memory.
-- **Advanced Array Methods:** Easily manipulate array data with index-based priority controls.
-- **Dot Notation:** Easily access deep object properties directly.
-- **Data Migration:** Transfer your data across different adapters smoothly.
-- **Crash-Safe Writes:** File adapters serialize writes and write atomically, so concurrent `set` calls never lose data or corrupt the file.
-- **Typed Events:** Subscribe to `set`, `delete`, `clear`, and `close` events.
-- **Web Dashboard:** A login-protected, bilingual (EN/TR), dark/light dashboard to manage your data live — no extra dependencies.
+- **Type-safe** — written in TypeScript, full autocompletion end to end.
+- **Multiple adapters** — JSON, YAML, MongoDB, MySQL, and Memory behind one API.
+- **Dot notation** — reach deep properties directly: `db.get('user.stats.level')`.
+- **Cached reads** — file adapters keep a validated in-memory copy, so repeated reads cost a `stat` instead of a full read + parse. Edits made outside the process are still picked up.
+- **Crash-safe writes** — writes are serialized and atomic, so concurrent `set` calls never lose data or leave a half-written file.
+- **Namespaces** — `db.namespace('users')` gives you an isolated, prefix-scoped view.
+- **Batch operations** — `mget`, `mset`, `mdelete` for working with many keys at once.
+- **Backup & restore** — snapshot the whole dataset and put it back, in replace or merge mode.
+- **Typed events** — `set`, `delete`, `clear`, `close`.
+- **Web dashboard** — login-protected, 8 languages, dark/light, mobile-ready, and dependency-free.
 
 ---
 
@@ -27,59 +29,39 @@ A modern, robust, type-safe, and lightweight database wrapper for Node.js.
 ```bash
 npm install ekmek-db
 ```
-## MysqlAdapter
-- Perfect for web applications and production environments where you need a centralized SQL database.
-```typescript
-import { EkmekDB, MysqlAdapter } from 'ekmek-db';
 
-const db = new EkmekDB(new MysqlAdapter({
-  host: 'localhost',
-  user: 'root',
-  password: 'your_password',
-  database: 'your_database',
-  // Optional: all other mysql2 pool options are supported
-}, 'table_name')); // Optional: Default table name is 'ekmek_db'
+# Adapters
 
-async function setup() {
-  await db.set('server.status', 'online');
-  
-  const status = await db.get('server.status');
-  console.log(`Server is ${status}`);
-}
+Pick the adapter that fits your project; the API is identical for all of them.
 
-setup();
-```
-## Adapters Setup
-- Initialize your database with the adapter that fits your project.
-
-## JsonAdapter
 ```typescript
 import { EkmekDB, JsonAdapter } from 'ekmek-db';
 
 const db = new EkmekDB(new JsonAdapter({ folder: 'data', file: 'database.json' }));
 ```
 
-## YamlAdapter
 ```typescript
-import { EkmekDB, YamlAdapter } from 'ekmek-db';
+import { EkmekDB, YamlAdapter, MemoryAdapter, MongoAdapter, MysqlAdapter } from 'ekmek-db';
 
-const db = new EkmekDB(new YamlAdapter({ folder: 'data', file: 'database.yaml' }));
+new EkmekDB(new YamlAdapter({ folder: 'data', file: 'database.yaml' }));
+new EkmekDB(new MemoryAdapter());
+new EkmekDB(new MongoAdapter('YOUR_MONGO_URL_HERE'));
+
+new EkmekDB(new MysqlAdapter({
+  host: 'localhost',
+  user: 'root',
+  password: 'your_password',
+  database: 'your_database',
+}, 'table_name'));
 ```
 
-## MongoAdapter
-```typescript
-import { EkmekDB, MongoAdapter } from 'ekmek-db';
+File adapters cache reads by default. Pass `cache: false` if another process rewrites the file constantly and you would rather pay for a fresh read every time:
 
-const db = new EkmekDB(new MongoAdapter('YOUR_MONGO_URL_HERE'));
-```
-## MemoryAdapter
 ```typescript
-import { EkmekDB, MemoryAdapter } from 'ekmek-db';
-
-const db = new EkmekDB(new MemoryAdapter());
+new EkmekDB(new JsonAdapter({ folder: 'data', file: 'db.json', cache: false }));
 ```
 
-## Basic Operations
+# Basic operations
 
 ```typescript
 await db.set('user.name', 'Admin');
@@ -89,49 +71,91 @@ await db.get('user.name');
 await db.get('user.stats');
 
 await db.has('user.stats.level');
-
 await db.all();
 
 await db.delete('user.name');
 await db.clear();
 ```
 
-## Math Operations
+# Utility methods
+
 ```typescript
-await db.set('economy.balance', 1000);
+await db.keys();   // top-level keys -> ['user', 'economy', ...]
+await db.values();
+await db.size();
 
-await db.add('economy.balance', 500);
-
-await db.subtract('economy.balance', 200);
-// add()/subtract() throw if the stored value is not a number.
-```
-
-## Utility Methods
-```typescript
-await db.keys();   // top-level keys      -> ['user', 'economy', ...]
-await db.values(); // top-level values
-await db.size();   // number of top-level entries
-
-// get the value, or set & return a default if the key is missing
+// read the value, or write and return a default when the key is missing
 const profile = await db.ensure('user.profile', { level: 1, coins: 0 });
 ```
 
-## Events
+# Math operations
+
 ```typescript
-db.on('set', (key, value) => console.log(`set ${key}`));
-db.on('delete', (key) => console.log(`deleted ${key}`));
-db.on('clear', () => console.log('database cleared'));
-db.on('close', () => console.log('database closed'));
+await db.set('economy.balance', 1000);
+await db.add('economy.balance', 500);
+await db.subtract('economy.balance', 200);
+// add() / subtract() throw if the stored value is not a number.
 ```
 
-## Lifecycle
+# Batch operations
+
+Work with many keys in one call instead of a loop of awaits.
+
 ```typescript
-// Releases underlying connections/pools (MongoDB, MySQL).
-// No-op for Memory/JSON/YAML adapters, always safe to call.
-await db.close();
+await db.mset({
+  'user.a.coins': 100,
+  'user.b.coins': 250,
+  'server.status': 'online',
+});
+
+await db.mget(['user.a.coins', 'user.b.coins']);
+// -> { 'user.a.coins': 100, 'user.b.coins': 250 }
+
+await db.mdelete(['user.a.coins', 'user.b.coins']); // -> 2 (number actually removed)
 ```
 
-## Advanced Array Operations
+# Querying
+
+`where()` runs a predicate over the top-level entries and returns the matches with their keys.
+
+```typescript
+await db.set('alice', { level: 5 });
+await db.set('bob', { level: 60 });
+
+await db.where((value) => value.level > 40);
+// -> [{ key: 'bob', value: { level: 60 } }]
+```
+
+# Namespaces
+
+A namespace is a prefix-scoped view of the same database — handy for keeping guilds, users, or features from colliding.
+
+```typescript
+const users = db.namespace('users');
+
+await users.set('mustafa.coins', 100);
+await users.add('mustafa.coins', 50);
+
+await users.get('mustafa.coins');     // 150
+await db.get('users.mustafa.coins');  // 150 — same value, full path
+
+await users.keys();  // ['mustafa'] — unprefixed
+await users.clear(); // drops only the users subtree
+```
+
+Namespaces support `get`, `set`, `has`, `delete`, `add`, `subtract`, `push`, `pull`, `ensure`, `find`, `filter`, `all`, `keys`, `size`, and `clear`.
+
+# Backup & restore
+
+```typescript
+const snapshot = await db.backup(); // detached deep copy of everything
+
+await db.restore(snapshot);                 // replace: wipes first, then writes
+await db.restore(partial, { merge: true }); // merge: keeps existing keys
+```
+
+# Advanced array operations
+
 ```typescript
 await db.push('guild.members', { id: '123', role: 'User' });
 await db.push('guild.members', { id: '456', role: 'Moderator' });
@@ -140,58 +164,75 @@ await db.pull('guild.members', (member) => member.id === '123');
 await db.unpush('guild.members', { id: '456', role: 'Moderator' });
 
 await db.setByPriority('guild.members', { id: '789', role: 'Owner' }, 1);
-
 await db.delByPriority('guild.members', 1);
 
 await db.find('guild.members', (member) => member.role === 'Owner');
 await db.filter('guild.members', (member) => member.role !== 'Banned');
 ```
 
-# Migration System
-- Transfer your entire dataset from one adapter to another effortlessly.
+# Events
+
+```typescript
+db.on('set', (key, value) => console.log(`set ${key}`));
+db.on('delete', (key) => console.log(`deleted ${key}`));
+db.on('clear', () => console.log('database cleared'));
+db.on('close', () => console.log('database closed'));
+```
+
+# Lifecycle
+
+```typescript
+// Releases underlying connections/pools (MongoDB, MySQL).
+// No-op for Memory/JSON/YAML adapters, always safe to call.
+await db.close();
+```
+
+# Migration system
+
+Transfer an entire dataset from one adapter to another.
+
 ```typescript
 import { JsonAdapter, MongoAdapter, Migrator } from 'ekmek-db';
 
-async function runMigration() {
-  const jsonAdapter = new JsonAdapter({ folder: 'data', file: 'old.json' });
-  const mongoAdapter = new MongoAdapter('YOUR_MONGO_URL_HERE');
+const jsonAdapter = new JsonAdapter({ folder: 'data', file: 'old.json' });
+const mongoAdapter = new MongoAdapter('YOUR_MONGO_URL_HERE');
 
-  await Migrator.transfer(jsonAdapter, mongoAdapter);
-}
-
-runMigration();
+await Migrator.transfer(jsonAdapter, mongoAdapter);
 ```
 
 ---
 
 # 🖥️ Web Dashboard
 
-A self-contained, login-protected web dashboard to manage your database **live** from the browser — built on Node's native `http` and `crypto` modules, so it adds **zero runtime dependencies**. Tailwind CSS, a bento-grid layout, dark/light themes, and full English/Turkish localization.
+A self-contained, login-protected web dashboard to manage your database **live** from the browser — built on Node's native `http` and `crypto` modules, so it adds **zero runtime dependencies** and loads no third-party script.
 
-![dashboard](https://img.shields.io/badge/UI-Tailwind%20%2B%20Bento-C6FF34?style=for-the-badge)
+![dashboard](https://img.shields.io/badge/UI-Bento%20%2B%20Mobile-99E1D9?style=for-the-badge)
 
 ## What you can do
 
-- **Data folder file manager** — the dashboard reads every `.json` file in your data folder and lets you edit each one **as a whole file** in a full-height code editor with line numbers and syntax highlighting. Pick a file on the left, edit its JSON on the right, and save it straight back to disk. Create and delete files from the UI.
+- **Data folder file manager** — reads every `.json` file in your data folder and lets you edit each one **as a whole file** in a full-height editor with line numbers and syntax highlighting. Create, upload, rename, duplicate, download, and delete files from the UI (drag a `.json` onto the list to upload it).
+- **Version history** — every save keeps a snapshot (last 15 per file); restore any of them from the editor menu.
+- **Search across files** — content search with file and line hits, from the top bar or `Ctrl/Cmd+K`. `Ctrl/Cmd+S` saves.
+- **Works on phones** — master/detail navigation, a 16px editor that never triggers iOS zoom, line wrapping, keyboard-aware layout, and safe-area insets.
 - **Import / Export** — download a full JSON snapshot, or load a `.json` file (merge or replace).
-- **Settings** — change the port/bind address (re-binds instantly), theme, language, and security — all from the UI.
-- **Security** — IP allowlist / blocklist, read-only mode, login brute-force lockout, CSRF protection, honeypot traps, and an access log of who tried to connect (IP, time, browser).
-- **i18n** — every label is bound to language files (`en` / `tr`); switch with one click.
-- **Animated UI** — staggered card entrances, view transitions, and subtle micro-interactions (all disabled under `prefers-reduced-motion`).
+- **Settings** — port/bind address (re-binds instantly), theme, language, and security, all from the UI.
+- **8 languages** — English, Türkçe, Русский, Deutsch, Azərbaycan, Français, 中文, 日本語. Every label is bound to the language files.
+- **Dark & light themes** in Wine Ash `#32292F` + Turquoise `#99E1D9`.
+- **Animated UI** — staggered entrances and micro-interactions, all disabled under `prefers-reduced-motion`.
 
 ## Quick start (CLI)
 
-The fastest way — a fresh install drops you straight on the setup screen:
+A fresh install drops you straight on the setup screen:
 
 ```bash
-# Run it directly (uses a JSON adapter at ./data/db.json)
+# Uses a JSON adapter at ./data/db.json
 npx ekmek-db dashboard
 
-# Or pick a port / data file
+# Or pick a port / data folder
 npx ekmek-db dashboard --port 80 --folder data --file db.json
 ```
 
-On first launch the console prints:
+On launch the console prints:
 
 ```
   🍞  ekmek-db dashboard active
@@ -217,8 +258,6 @@ const dashboard = new Dashboard(db, {
 });
 
 await dashboard.start();
-// The dashboard stays up while your process runs.
-// Console: 🍞 ekmek-db dashboard active → http://192.168.1.42:8080
 ```
 
 ### Dashboard options
@@ -232,23 +271,22 @@ await dashboard.start();
 | `dbName` | `'ekmek-db'` | Display name in the UI. |
 | `quiet` | `false` | Suppress the console banner. |
 
-## 🔒 Security — read before exposing it to the internet
+## 🔒 Security
 
 The dashboard is built for a **local network**. If you forward a port on your router to expose it to the outside world, harden it first:
 
-- **Set a strong admin password** (minimum 8 characters; longer is better). It is stored only as a scrypt salt + hash.
-- **Use the IP allowlist** (Settings → Security). When set, **only** the listed IPs can connect — everything else gets `403`. Localhost is always allowed and your current IP is added automatically, so you can never lock yourself out.
-- **Brute-force lockout** is on by default: after N failed logins an IP is locked out. Tune the attempt count and lockout duration in Settings.
-- **CSRF protection** — every state-changing request requires a per-session token, on top of `SameSite=Strict` cookies.
-- **Honeypot traps** — common attack paths (`/wp-login.php`, `/.env`, `/phpmyadmin`, …) and a hidden form field are watched; anything that touches them is logged and rejected.
-- **Access & security log** (Settings → Security) records logins, failed attempts, blocked IPs, honeypot hits, and config changes with timestamp, IP, and browser. Stored locally in `ekmek-dashboard.log.json`.
-- **Read-only mode** blocks every change to your data while keeping the dashboard browsable — handy when exposing a live view.
-- **Sessions** are HttpOnly, `SameSite=Strict` cookies with a configurable lifetime; changing the password invalidates all sessions.
+- **Set a strong admin password** (minimum 8 characters). It is stored only as a scrypt salt + hash, and a wrong username costs the same work as a wrong password, so logins never reveal whether an account exists.
+- **Use the IP allowlist** (Settings → Security). When set, **only** the listed IPs can connect. Localhost is always allowed and your current IP is added automatically, so you can never lock yourself out.
+- **Brute-force lockout** is on by default: after N failed logins an IP is locked out. Tune the count and duration in Settings.
+- **CSRF protection** — every state-changing request needs a per-session token, compared in constant time, on top of `SameSite=Strict` cookies.
+- **Strict CSP** — `script-src 'self'` with `base-uri 'none'` and `object-src 'none'`. No inline scripts, no `eval`, no CDN.
+- **Honeypot traps** — common attack paths (`/wp-login.php`, `/.env`, `/phpmyadmin`, …) and a hidden form field are logged and rejected.
+- **Access & security log** (Settings → Security) records logins, failed attempts, blocked IPs, honeypot hits, and config changes with timestamp, IP, and browser. Stored in `ekmek-dashboard.log.json`.
+- **Read-only mode** blocks every change to your data while keeping the dashboard browsable.
 - **Bind to `127.0.0.1`** if you only need local access, so the port is never reachable from the network at all.
 
-> The config file (`ekmek-dashboard.config.json`) is written with restrictive permissions and holds your hashed password and server secret. Keep it out of version control (add it to `.gitignore`).
+> The config file (`ekmek-dashboard.config.json`) holds your hashed password. Keep it and `ekmek-dashboard.log.json` out of version control — both are already in this project's `.gitignore`.
 
 ## Changing the port
 
-Change it from **Settings → Server**. The server re-binds to the new port immediately and the UI redirects you to the new address — no manual restart needed. (You can also set it via the `port` option or `--port` flag.)
-
+Change it from **Settings → Server**. The server re-binds immediately and the UI redirects you to the new address.

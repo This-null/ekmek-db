@@ -2,12 +2,19 @@
   const state = { lang: 'en', dict: {} };
   const cache = {};
 
+  const FALLBACK = "en";
+
   async function load(lang) {
     if (cache[lang]) return cache[lang];
-    const res = await fetch(`/i18n/${lang}.json`, { cache: 'no-cache' });
-    if (!res.ok) throw new Error('i18n load failed');
-    cache[lang] = await res.json();
-    return cache[lang];
+    try {
+      const res = await fetch("/i18n/" + encodeURIComponent(lang) + ".json", { cache: "no-cache" });
+      if (!res.ok) throw new Error("i18n " + res.status);
+      cache[lang] = await res.json();
+      return cache[lang];
+    } catch (err) {
+      if (lang === FALLBACK) throw err;
+      return load(FALLBACK);
+    }
   }
 
   function lookup(path) {

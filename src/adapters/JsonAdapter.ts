@@ -5,7 +5,7 @@ export class JsonAdapter extends FileAdapter {
   constructor(options: FileAdapterOptions = {}) {
     const folder = options.folder ?? 'data';
     const file = options.file ?? 'db.json';
-    super(path.join(process.cwd(), folder, file), '{}');
+    super(path.join(process.cwd(), folder, file), '{}', options.cache !== false);
   }
 
   protected serialize(data: Record<string, any>): string {

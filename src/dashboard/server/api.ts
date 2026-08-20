@@ -1,6 +1,7 @@
+import crypto from 'crypto';
 import { IncomingMessage, ServerResponse } from 'http';
 import { EkmekDB } from '../../core/EkmekDB';
-import { ConfigStore, SecuritySettings } from './config';
+import { ConfigStore, SecuritySettings, SUPPORTED_LANGUAGES, Language } from './config';
 import { SessionManager, hashPassword, verifyPassword } from './auth';
 import { LoginThrottle, isLoopback } from './security';
 import { SecurityLog, SecurityEventType } from './securityLog';
@@ -33,6 +34,18 @@ interface ApiDeps {
 }
 
 const USERNAME_RE = /^[A-Za-z0-9_.-]{3,32}$/;
+
+function safeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(String(a));
+  const bb = Buffer.from(String(b));
+  if (ab.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ab, bb);
+}
+
+const DECOY_USER = (() => {
+  const salt = crypto.randomBytes(16).toString('hex');
+  return { username: '', salt, hash: crypto.scryptSync(crypto.randomBytes(24).toString('hex'), salt, 64).toString('hex') };
+})();
 
 const CSRF_EXEMPT = new Set(['POST /api/setup', 'POST /api/login']);
 
@@ -67,7 +80,7 @@ export class Api {
 
       if (ctx.method !== 'GET' && !CSRF_EXEMPT.has(route)) {
         const expected = this.deps.sessions.csrfFor(ctx.token);
-        if (!expected || ctx.csrfHeader !== expected) {
+        if (!expected || !ctx.csrfHeader || !safeEqual(ctx.csrfHeader, expected)) {
           this.log(ctx, 'csrf_failed');
           sendJson(res, 403, { error: 'csrf' });
           return true;
@@ -113,6 +126,18 @@ export class Api {
           return await this.createFile(ctx);
         case 'POST /api/files/delete':
           return await this.deleteFile(ctx);
+        case 'POST /api/files/rename':
+          return await this.renameFile(ctx);
+        case 'POST /api/files/duplicate':
+          return await this.duplicateFile(ctx);
+        case 'GET /api/files/download':
+          return await this.downloadFile(ctx);
+        case 'GET /api/files/search':
+          return await this.searchFiles(ctx);
+        case 'GET /api/files/backups':
+          return await this.listBackups(ctx);
+        case 'POST /api/files/restore':
+          return await this.restoreBackup(ctx);
         default:
           sendJson(res, 404, { error: 'not_found' });
           return true;
@@ -196,7 +221,10 @@ export class Api {
     const password = String(body.password ?? '');
     const admin = this.cfg.admin;
 
-    if (!admin || admin.username !== username || !verifyPassword(password, admin)) {
+    const passwordOk = verifyPassword(password, admin ?? DECOY_USER);
+    const usernameOk = Boolean(admin) && safeEqual(admin!.username, username);
+
+    if (!usernameOk || !passwordOk) {
       this.deps.throttle.recordFailure(ctx.ip);
       this.log(ctx, 'login_failed', username || '(empty)');
       sendJson(ctx.res, 401, { error: 'invalid_credentials' });
@@ -316,7 +344,9 @@ export class Api {
     const patch: any = {};
 
     if (body.theme === 'dark' || body.theme === 'light') patch.theme = body.theme;
-    if (body.language === 'en' || body.language === 'tr') patch.language = body.language;
+    if (typeof body.language === 'string' && (SUPPORTED_LANGUAGES as readonly string[]).includes(body.language)) {
+      patch.language = body.language as Language;
+    }
 
     let portChanged = false;
     let nextPort = this.cfg.port;
@@ -501,6 +531,67 @@ export class Api {
     }
     this.log(ctx, 'data_changed', `file create ${name}`);
     sendJson(ctx.res, 201, { ok: true, name });
+    return true;
+  }
+
+  private async renameFile(ctx: RequestContext): Promise<boolean> {
+    if (!this.guardReadOnly(ctx.res)) return true;
+    const body = await readJsonBody(ctx.req);
+    const from = String(body.from ?? '');
+    let to = String(body.to ?? '').trim();
+    if (to && !/.json$/i.test(to)) to += '.json';
+    const res = await this.deps.files.rename(from, to);
+    if (!res.ok) { sendJson(ctx.res, 400, { error: res.error }); return true; }
+    this.log(ctx, 'data_changed', `file rename ${from} -> ${to}`);
+    sendJson(ctx.res, 200, { ok: true, name: to });
+    return true;
+  }
+
+  private async duplicateFile(ctx: RequestContext): Promise<boolean> {
+    if (!this.guardReadOnly(ctx.res)) return true;
+    const body = await readJsonBody(ctx.req);
+    const res = await this.deps.files.duplicate(String(body.name ?? ''));
+    if (!res.ok) { sendJson(ctx.res, 400, { error: res.error }); return true; }
+    this.log(ctx, 'data_changed', `file duplicate ${res.name}`);
+    sendJson(ctx.res, 201, { ok: true, name: res.name });
+    return true;
+  }
+
+  private async downloadFile(ctx: RequestContext): Promise<boolean> {
+    const name = String(ctx.query.name ?? '');
+    const content = await this.deps.files.read(name);
+    if (content === null) { sendJson(ctx.res, 404, { error: 'not_found' }); return true; }
+    ctx.res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${name}"`,
+    });
+    ctx.res.end(content);
+    return true;
+  }
+
+  private async searchFiles(ctx: RequestContext): Promise<boolean> {
+    const hits = await this.deps.files.search(String(ctx.query.q ?? ''));
+    sendJson(ctx.res, 200, { hits });
+    return true;
+  }
+
+  private async listBackups(ctx: RequestContext): Promise<boolean> {
+    const backups = await this.deps.files.backups(String(ctx.query.name ?? ''));
+    sendJson(ctx.res, 200, { backups });
+    return true;
+  }
+
+  private async restoreBackup(ctx: RequestContext): Promise<boolean> {
+    if (!this.guardReadOnly(ctx.res)) return true;
+    const body = await readJsonBody(ctx.req);
+    const name = String(body.name ?? '');
+    const stamp = String(body.stamp ?? '');
+    const content = await this.deps.files.readBackup(name, stamp);
+    if (content === null) { sendJson(ctx.res, 404, { error: 'not_found' }); return true; }
+    const res = await this.deps.files.write(name, content);
+    if (!res.ok) { sendJson(ctx.res, 400, { error: res.error }); return true; }
+    this.log(ctx, 'data_changed', `file restore ${name} @ ${stamp}`);
+    sendJson(ctx.res, 200, { ok: true, content });
     return true;
   }
 

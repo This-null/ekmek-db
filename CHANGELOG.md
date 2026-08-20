@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.0.8
+
+### Fixed — mobile
+- **Editor was unusable on phones.** The textarea rendered at 13px, so iOS auto-zoomed on focus and the page felt stuck. The editor now renders at 16px on touch devices, so tapping in no longer zooms.
+- **No line wrapping**, which forced horizontal scrolling through long JSON. Added a wrap toggle (on by default on touch, remembered per device); the gutter hides while wrapped so the text and highlight layers stay aligned.
+- **File list and editor were crammed together** — the list was squeezed into a 36vh strip above the editor. Phones now get proper master/detail navigation: the list fills the screen, tapping a file slides in a full-height editor with a back button.
+- **Action buttons wrapped into a pile** in the editor header. They collapse into icons plus an overflow menu on narrow screens.
+- **The drawer had no backdrop** and could not be dismissed by tapping outside. Added a scrim, tap-to-close, and Escape.
+- **Layout jumped when the soft keyboard opened.** The shell now tracks `visualViewport`.
+- Safe-area insets for notched devices, 44px-class touch targets, and the security log renders as cards instead of an unreadable five-column table.
+- **File list header overflowed its column** by ~17px because the directory path had a hard `max-width`; the title block now shrinks and the path truncates from the left so the folder name stays visible.
+- The auth footer’s theme button rendered as an empty circle (`.ghost-pill` never sized its icon), and its language pill was hardcoded to `EN · TR`.
+
+### Added — dashboard
+- **8 languages**: English, Türkçe, Русский, Deutsch, Azərbaycan, Français, 中文, 日本語 — every string is bound to the language files, with a picker in the top bar and in Settings. Unknown or failed locales fall back to English instead of blanking the page.
+- **New palette**: Wine Ash `#32292F` and Turquoise `#99E1D9` across both themes.
+- **Upload from device**: the add button now offers an empty file or a JSON upload; files can also be dropped onto the file list. Names are sanitized, contents validated, and clashes ask before overwriting.
+- **Version history**: every save snapshots the file (last 15 kept) and any snapshot can be restored from the editor menu.
+- **File operations**: rename, duplicate, and download individual files.
+- **Search across files** (content search with file + line hits) reachable from the top bar or `Ctrl/Cmd+K`, plus a name filter in the file list.
+- `Ctrl/Cmd+S` saves; unsaved changes prompt before navigating away or closing the tab.
+- Sidebar user card with avatar and live status.
+
+### Added — core
+- **Cached reads for file adapters.** Every `get()` used to re-read and re-parse the whole file; the adapter now keeps a validated in-memory copy and only pays a `stat` per read. External edits (the dashboard, another process) are still picked up via mtime+size validation, and returned objects are detached copies so callers cannot corrupt the cache. Opt out with `cache: false`.
+- **Namespaces** — `db.namespace('users')` returns a prefix-scoped view with the usual read/write/array helpers plus `keys`, `size`, and a `clear` that only drops its own subtree.
+- **Batch operations** — `mget`, `mset`, and `mdelete`.
+- **`where(predicate)`** — filter top-level entries and get back `{ key, value }` matches.
+- **`backup()` / `restore(snapshot, { merge })`** — detached snapshot of the whole dataset, restored in replace or merge mode.
+
+### Security
+- **Removed the Tailwind CDN.** It was dead weight (three of the five classes were already ours) and it forced `unsafe-inline` and `unsafe-eval` in the script CSP plus a third-party origin. The policy is now `script-src 'self'` with `base-uri 'none'`, `object-src 'none'`, and `form-action 'self'`; the dashboard also no longer loads any script from the network.
+- **Login no longer leaks whether a username exists** — a wrong username now costs the same scrypt work as a wrong password.
+- CSRF tokens are compared in constant time.
+- Search and listing are bounded (query length, bytes scanned, per-file parse size) so a large data folder cannot be used to stall the server.
+- Snapshot restore validates the timestamp, and deleting a file removes its snapshots.
+
 ## 0.0.7
 
 ### Added — Dashboard
